@@ -1,0 +1,193 @@
+services:
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy
+    container_name: docker-socket-proxy
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    privileged: true
+    environment:
+      - CONTAINERS=1
+      - NETWORKS=1
+      - SERVICES=1
+      - TASKS=1
+      - IMAGES=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - socket-proxy
+
+  traefik:
+    image: traefik:v3
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.endpoint=tcp://docker-socket-proxy:2375"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+      - "--accesslog.filepath=/logs/access.log"
+    ports:
+      - "80:80"
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - "./logs:/logs"
+      - "./config:/etc/traefik/dynamic:ro"
+    networks:
+      - web
+      - socket-proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_AUTH}"
+
+  whoami:
+    image: traefik/whoami
+    container_name: whoami
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.${DOMAIN}`)"
+      - "traefik.http.routers.whoami.entrypoints=web"
+      - "traefik.http.routers.whoami.middlewares=ratelimit,security-headers@file"
+      - "traefik.http.middlewares.ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.ratelimit.ratelimit.burst=50"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    networks:
+      - web
+
+  # Database Services
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_DB=${POSTGRES_DB:-deployer}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      - web
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command: redis-server --requirepass ${REDIS_PASSWORD:-changeme}
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - web
+    healthcheck:
+      test: ["CMD", "redis-cli", "--pass", "${REDIS_PASSWORD:-changeme}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Monitoring (uncomment untuk pakai)
+  # uptime-kuma:
+  #   image: louislam/uptime-kuma:1
+  #   container_name: uptime-kuma
+  #   restart: unless-stopped
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   volumes:
+  #     - ./data/uptime-kuma:/app/data
+  #   networks:
+  #     - web
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.uptime.rule=Host(`uptime.${DOMAIN}`)"
+  #     - "traefik.http.routers.uptime.entrypoints=web"
+  #     - "traefik.http.services.uptime.loadbalancer.server.port=3001"
+
+  deployer:
+    build: ./projects/deployer
+    container_name: deployer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:${PORT:-3000}/health/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./projects/deployer/data:/app/data
+      - .:/homelab:ro
+    environment:
+      - HOMELAB_PATH=/homelab
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/deployer
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN:-}
+      - CLOUDFLARE_ACCOUNT_ID=${CLOUDFLARE_ACCOUNT_ID:-}
+      - CLOUDFLARE_TUNNEL_ID=${CLOUDFLARE_TUNNEL_ID:-}
+      - CLOUDFLARE_ZONE_ID=${CLOUDFLARE_ZONE_ID:-}
+      - DOMAIN=${DOMAIN:-}
+      - DOCKER_NETWORK=homelab-public_web
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.deployer.rule=Host(`deploy.${DOMAIN}`)"
+      - "traefik.http.routers.deployer.entrypoints=web"
+      - "traefik.http.services.deployer.loadbalancer.server.port=3000"
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/portainer:/data
+
+networks:
+  web:
+    driver: bridge
+  socket-proxy:
+    driver: bridge
+    internal: true

@@ -1,0 +1,24 @@
+logs/
+.env
+backups/
+data/
+*.tar.gz
+*.sql
+*.backup
+
+# Local git repos for testing
+git-repos/
+
+# Deployer data
+projects/deployer/data/repos/
+projects/deployer/data/sessions.json
+projects/deployer/data/users.json
+projects/deployer/data/projects.json
+projects/deployer/dist/
+projects/deployer/dist-api/
+projects/deployer/node_modules/
+
+# Test projects
+projects/test-react-app/node_modules/
+projects/test-react-app/dist/
+docker-compose.override.yml

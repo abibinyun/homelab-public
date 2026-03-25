@@ -1,0 +1,41 @@
+# Demo mode — preview UI saja, semua action di-disable
+# Usage: ./scripts/setup-demo.sh
+
+services:
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy
+    container_name: docker-socket-proxy-demo
+    restart: unless-stopped
+    privileged: true
+    environment:
+      - CONTAINERS=1
+      - NETWORKS=1
+      - IMAGES=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - socket-proxy
+
+  deployer:
+    build: ./projects/deployer
+    container_name: deployer
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - ./projects/deployer/data:/app/data
+      - .:/homelab:ro
+    env_file:
+      - ./projects/deployer/.env
+    environment:
+      - DOCKER_HOST=tcp://docker-socket-proxy-demo:2375
+    networks:
+      - socket-proxy
+      - public
+
+networks:
+  socket-proxy:
+    driver: bridge
+    internal: true
+  public:
+    driver: bridge

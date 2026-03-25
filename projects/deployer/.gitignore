@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dist-api/
+.env
+*.log
+*.tsbuildinfo
+data/
+uploads/
+.ssh/

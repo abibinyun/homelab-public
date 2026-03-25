@@ -1,0 +1,16 @@
+http:
+  middlewares:
+    security-headers:
+      headers:
+        customResponseHeaders:
+          X-Frame-Options: "DENY"
+          X-Content-Type-Options: "nosniff"
+          X-XSS-Protection: "1; mode=block"
+          Referrer-Policy: "strict-origin-when-cross-origin"
+          Permissions-Policy: "geolocation=(), microphone=(), camera=()"
+          X-Permitted-Cross-Domain-Policies: "none"
+        sslRedirect: false
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: false
+        frameDeny: true

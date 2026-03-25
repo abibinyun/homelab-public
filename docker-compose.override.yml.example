@@ -1,0 +1,32 @@
+# docker-compose.override.yml.example
+#
+# Salin file ini ke docker-compose.override.yml untuk kustomisasi lokal.
+# File override TIDAK perlu di-commit — sudah ada di .gitignore.
+#
+# docker-compose.override.yml otomatis di-merge dengan docker-compose.yml
+# saat menjalankan `docker compose up`.
+#
+# Contoh penggunaan:
+
+# services:
+#
+#   # Ubah port deployer (jika 3000 sudah dipakai)
+#   deployer:
+#     ports:
+#       - "3001:3000"
+#
+#   # Expose port postgres ke host (untuk akses via DBeaver/TablePlus)
+#   postgres:
+#     ports:
+#       - "5432:5432"
+#
+#   # Expose port redis ke host
+#   redis:
+#     ports:
+#       - "6379:6379"
+#
+#   # Mount volume custom untuk data deployer
+#   deployer:
+#     volumes:
+#       - /mnt/data/deployer:/app/data
+#       - .:/homelab:ro
