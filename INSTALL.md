@@ -12,26 +12,26 @@
 | Disk | 2 GB |
 
 ### Full Production Setup
-| Requirement | Keterangan |
-|-------------|------------|
-| Semua di atas | ✅ |
-| Domain | Domain aktif yang **sudah terdaftar di Cloudflare** |
-| Cloudflare account | Free tier cukup |
-| Cloudflare Tunnel | Gratis — [cara buat](#cloudflare-tunnel) |
-| Port 80 | Harus bebas di server (untuk Traefik) |
-| RAM | Min 1 GB (rekomendasi 2 GB+) |
+| Requirement | Notes |
+|-------------|-------|
+| All of the above | ✅ |
+| Domain | Active domain **registered with Cloudflare** |
+| Cloudflare account | Free tier is sufficient |
+| Cloudflare Tunnel | Free — [how to create](#cloudflare-tunnel) |
+| Port 80 | Must be free on the server (for Traefik) |
+| RAM | Min 1 GB (2 GB+ recommended) |
 | Disk | Min 10 GB |
 
-> ⚠️ **Full setup TIDAK akan berjalan tanpa domain di Cloudflare.**
-> Jika belum punya, gunakan [Demo Mode](#demo-mode-preview-ui) dulu.
+> ⚠️ **Full setup will NOT work without a domain on Cloudflare.**
+> If you don't have one, use [Demo Mode](#demo-mode-preview-ui) first.
 
 ---
 
-## Cara Install
+## How to Install
 
 ### Demo Mode (Preview UI)
 
-Tidak butuh domain. Cocok untuk lihat-lihat fitur.
+No domain required. Great for exploring features.
 
 ```bash
 git clone https://github.com/abibinyun/homelab-public.git homelab
@@ -39,9 +39,9 @@ cd homelab
 ./scripts/setup-demo.sh
 ```
 
-Buka `http://localhost:3000` — login `demo` / `demo1234`.
+Open `http://localhost:3000` — login `demo` / `demo1234`.
 
-> Data disimpan di file JSON. Semua action di-disable (read-only UI).
+> Data is stored in a JSON file. All actions are disabled (read-only UI).
 
 ---
 
@@ -49,35 +49,35 @@ Buka `http://localhost:3000` — login `demo` / `demo1234`.
 
 #### Prerequisites
 
-**1. Domain di Cloudflare**
+**1. Domain on Cloudflare**
 
-Domain kamu harus menggunakan Cloudflare sebagai nameserver:
-1. Beli domain di registrar manapun (Namecheap, GoDaddy, dll)
-2. Di registrar, ganti nameserver ke Cloudflare:
+Your domain must use Cloudflare as its nameserver:
+1. Buy a domain from any registrar (Namecheap, GoDaddy, etc.)
+2. At the registrar, change the nameservers to Cloudflare:
    - `xxx.ns.cloudflare.com`
    - `yyy.ns.cloudflare.com`
-3. Tunggu propagasi (biasanya 5–30 menit)
-4. Verifikasi di [dash.cloudflare.com](https://dash.cloudflare.com) — status harus **Active**
+3. Wait for propagation (usually 5–30 minutes)
+4. Verify at [dash.cloudflare.com](https://dash.cloudflare.com) — status must be **Active**
 
 **2. Cloudflare Tunnel** {#cloudflare-tunnel}
 
-1. Buka [Cloudflare Zero Trust](https://one.dash.cloudflare.com/)
+1. Open [Cloudflare Zero Trust](https://one.dash.cloudflare.com/)
 2. **Networks → Tunnels → Create a tunnel**
-3. Pilih **Cloudflared** → beri nama (contoh: `homelab`)
-4. Copy **tunnel token** (format panjang dimulai `eyJ...`)
-5. Di tab **Public Hostname**, tambahkan:
+3. Select **Cloudflared** → give it a name (e.g. `homelab`)
+4. Copy the **tunnel token** (long string starting with `eyJ...`)
+5. In the **Public Hostname** tab, add:
 
 | Subdomain | Domain | Service |
 |-----------|--------|---------|
 | `deploy` | `yourdomain.com` | `http://traefik:80` |
 | `traefik` | `yourdomain.com` | `http://traefik:80` |
 
-> Semua subdomain selalu pakai `http://traefik:80` — Traefik yang handle routing.
+> All subdomains always use `http://traefik:80` — Traefik handles routing.
 
 **3. Server**
 
-- Port 80 harus bebas: `sudo lsof -i :80`
-- Docker terinstall: `docker --version`
+- Port 80 must be free: `sudo lsof -i :80`
+- Docker installed: `docker --version`
 - Docker Compose v2: `docker compose version`
 
 #### Install
@@ -88,78 +88,78 @@ cd homelab
 ./scripts/setup.sh
 ```
 
-Script akan menanyakan:
-- Domain kamu
+The script will ask for:
+- Your domain
 - Cloudflare Tunnel Token
-- Username & password untuk Deployer UI
-- Username & password untuk Traefik dashboard
-- Cloudflare API (opsional — untuk auto-routing subdomain)
+- Username & password for the Deployer UI
+- Username & password for the Traefik dashboard
+- Cloudflare API credentials (optional — for auto-routing subdomains)
 
-Setelah selesai:
+After completion:
 ```bash
 docker compose up -d
-docker compose ps   # pastikan semua container running
+docker compose ps   # verify all containers are running
 ```
 
-Akses Deployer di `https://deploy.yourdomain.com`.
+Access Deployer at `https://deploy.yourdomain.com`.
 
 ---
 
-## Cloudflare API (Opsional)
+## Cloudflare API (Optional)
 
-Tanpa Cloudflare API, subdomain untuk setiap project yang di-deploy **tidak akan otomatis terbuat**. Kamu harus tambah DNS record manual di Cloudflare setiap deploy project baru.
+Without the Cloudflare API, subdomains for each deployed project **will not be created automatically**. You will need to add DNS records manually in Cloudflare for every new project.
 
-Untuk mengaktifkan auto-routing:
+To enable auto-routing:
 
-1. Buka [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens)
+1. Open [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens)
 2. **Create Token → Custom Token**
 3. Permissions:
    - `Zone → DNS → Edit`
    - `Zone → Zone → Read`
    - `Account → Cloudflare Tunnel → Edit`
-4. Masukkan token, Zone ID, Account ID, dan Tunnel ID ke `.env` atau jalankan ulang `./scripts/setup.sh`
+4. Add the token, Zone ID, Account ID, and Tunnel ID to `.env` or re-run `./scripts/setup.sh`
 
 ---
 
 ## Troubleshooting
 
-**Container tidak mau start:**
+**Container won't start:**
 ```bash
-docker compose logs cloudflared   # cek tunnel
-docker compose logs traefik       # cek reverse proxy
-docker compose logs deployer      # cek app
+docker compose logs cloudflared   # check tunnel
+docker compose logs traefik       # check reverse proxy
+docker compose logs deployer      # check app
 ```
 
-**Port 80 sudah dipakai:**
+**Port 80 already in use:**
 ```bash
 sudo lsof -i :80
-sudo systemctl stop apache2   # atau nginx, dll
+sudo systemctl stop apache2   # or nginx, etc.
 ```
 
-**Domain tidak bisa diakses:**
-- Pastikan Public Hostname sudah ditambahkan di Cloudflare Tunnel
-- Pastikan `DOMAIN` di `.env` sudah benar
-- Tunggu beberapa menit untuk propagasi
+**Domain not accessible:**
+- Ensure the Public Hostname has been added in the Cloudflare Tunnel
+- Ensure `DOMAIN` in `.env` is correct
+- Wait a few minutes for propagation
 
-**Login tidak bisa:**
-- `ADMIN_PASSWORD` **wajib diisi** di `.env` sebelum pertama kali `docker compose up` — jika kosong, app tidak akan start sama sekali
-- Jika sudah terlanjur jalan tanpa set: `rm -rf projects/deployer/data/ && docker compose restart deployer`
-- Jika lupa password: `./scripts/reset-password.sh`
+**Cannot login:**
+- `ADMIN_PASSWORD` is **required** in `.env` before the first `docker compose up` — if empty, the app will not start
+- If already running without it set: `rm -rf projects/deployer/data/ && docker compose restart deployer`
+- If you forgot your password: `./scripts/reset-password.sh`
 
-**Deployer terus restart / tidak bisa start:**
+**Deployer keeps restarting / won't start:**
 ```bash
 docker compose logs deployer --tail=30
 ```
-Jika ada error `column does not exist` atau `relation does not exist`:
+If you see `column does not exist` or `relation does not exist`:
 ```bash
-# Reset database deployer (data projects hilang)
+# Reset deployer database (project data will be lost)
 docker compose exec postgres psql -U postgres -d deployer -c "DROP TABLE IF EXISTS projects CASCADE; DROP TABLE IF EXISTS users CASCADE;"
 docker compose restart deployer
 ```
 
-**Upgrade dari versi lama:**
+**Upgrading from an older version:**
 
-Jika sebelumnya pernah install versi lain, jalankan fresh install:
+If you previously installed an older version, run a fresh install:
 ```bash
-./scripts/setup.sh   # pilih opsi [2] Fresh install
+./scripts/setup.sh   # choose option [2] Fresh install
 ```

@@ -1,46 +1,46 @@
 # Cloudflare API Automation
 
-Otomatis create Cloudflare Tunnel public hostname via API, tidak perlu manual di dashboard.
+Automatically create Cloudflare Tunnel public hostnames via API — no manual dashboard steps needed.
 
 ## Setup
 
-### 1. Dapatkan Cloudflare API Token
+### 1. Get a Cloudflare API Token
 
-1. Login ke Cloudflare Dashboard
-2. Buka: https://dash.cloudflare.com/profile/api-tokens
-3. Klik **Create Token**
-4. Pilih template **Edit Cloudflare Tunnel** atau buat custom dengan permissions:
+1. Log in to the Cloudflare Dashboard
+2. Go to: https://dash.cloudflare.com/profile/api-tokens
+3. Click **Create Token**
+4. Select the **Edit Cloudflare Tunnel** template, or create a custom token with:
    - Account → Cloudflare Tunnel → Edit
    - Zone → DNS → Edit
-5. Klik **Continue to summary** → **Create Token**
-6. Copy token yang muncul
+5. Click **Continue to summary** → **Create Token**
+6. Copy the token
 
-### 2. Dapatkan IDs
+### 2. Get Your IDs
 
 **Account ID:**
-1. Buka Cloudflare Dashboard
-2. Klik domain kamu (yourdomain.com)
-3. Scroll ke bawah di sidebar kanan
-4. Copy **Account ID**
+1. Open the Cloudflare Dashboard
+2. Click your domain (yourdomain.com)
+3. Scroll down in the right sidebar
+4. Copy the **Account ID**
 
 **Tunnel ID:**
-1. Buka Networks → Tunnels
-2. Klik tunnel kamu (homelab)
-3. Copy ID dari URL: `https://one.dash.cloudflare.com/.../tunnels/[TUNNEL_ID]`
+1. Go to Networks → Tunnels
+2. Click your tunnel (homelab)
+3. Copy the ID from the URL: `https://one.dash.cloudflare.com/.../tunnels/[TUNNEL_ID]`
 
 **Zone ID:**
-1. Buka Cloudflare Dashboard
-2. Klik domain kamu
-3. Scroll ke bawah di sidebar kanan
-4. Copy **Zone ID**
+1. Open the Cloudflare Dashboard
+2. Click your domain
+3. Scroll down in the right sidebar
+4. Copy the **Zone ID**
 
-### 3. Update .env
+### 3. Update `.env`
 
 ```bash
 nano .env
 ```
 
-Tambahkan:
+Add:
 ```bash
 CLOUDFLARE_API_TOKEN=your_api_token_here
 CLOUDFLARE_ACCOUNT_ID=your_account_id_here
@@ -52,7 +52,7 @@ CLOUDFLARE_ZONE_ID=your_zone_id_here
 
 ## Usage
 
-### Manual Add Route
+### Add a Route Manually
 
 ```bash
 # Subdomain
@@ -65,14 +65,14 @@ CLOUDFLARE_ZONE_ID=your_zone_id_here
 ./scripts/cloudflare-route.sh api.myapp.com http://traefik:80
 ```
 
-### Integrated dengan Deploy Script
+### Integrated with Deploy Script
 
-Setelah deploy, jalankan:
+After deploying, run:
 ```bash
 ./scripts/deploy.sh
 # Deploy project...
 
-# Lalu otomatis add route
+# Then automatically add route
 ./scripts/cloudflare-route.sh myapp.yourdomain.com
 ```
 
@@ -80,52 +80,19 @@ Setelah deploy, jalankan:
 
 ## Fully Automated Deploy
 
-Buat wrapper script untuk full automation:
+Use `full-deploy.sh` for a single command that deploys and routes:
 
-**full-deploy.sh:**
 ```bash
-#!/bin/bash
-
-PROJECT_NAME=$1
-SUBDOMAIN=$2
-PROJECT_PATH=$3
-
-if [ -z "$PROJECT_NAME" ] || [ -z "$SUBDOMAIN" ] || [ -z "$PROJECT_PATH" ]; then
-    echo "Usage: ./scripts/full-deploy.sh <project-name> <subdomain> <project-path>"
-    exit 1
-fi
-
-# 1. Deploy container
-echo "🚀 Deploying container..."
-echo -e "$PROJECT_NAME\n$SUBDOMAIN\n$PROJECT_PATH\n\ny" | ./scripts/deploy.sh
-
-# 2. Wait for container to be ready
-echo "⏳ Waiting for container..."
-sleep 5
-
-# 3. Auto-create Cloudflare route
-echo "🌐 Creating Cloudflare route..."
-source .env
-./scripts/cloudflare-route.sh "$SUBDOMAIN.yourdomain.com"
-
-echo ""
-echo "✅ Full deployment complete!"
-echo "🌐 Access: https://$SUBDOMAIN.yourdomain.com"
+./scripts/full-deploy.sh <project-name> <subdomain> <project-path> [port]
+# Example:
+./scripts/full-deploy.sh myapp myapp ./projects/myapp 3000
 ```
-
-Usage:
-```bash
-chmod +x full-deploy.sh
-./scripts/full-deploy.sh myapp myapp ./projects/myapp
-```
-
-**Zero manual steps!** 🚀
 
 ---
 
 ## Advanced: Terraform
 
-Untuk infrastructure as code yang lebih robust:
+For more robust infrastructure as code:
 
 **main.tf:**
 ```hcl
@@ -165,13 +132,11 @@ resource "cloudflare_tunnel_config" "homelab" {
   tunnel_id  = var.tunnel_id
 
   config {
-    # Whoami
     ingress_rule {
       hostname = "whoami.yourdomain.com"
       service  = "http://traefik:80"
     }
 
-    # Traefik
     ingress_rule {
       hostname = "traefik.yourdomain.com"
       service  = "http://traefik:8080"
@@ -205,7 +170,7 @@ terraform apply
 
 ## Troubleshooting
 
-### API Token tidak valid
+### API token invalid
 ```bash
 # Test token
 curl -X GET "https://api.cloudflare.com/client/v4/user/tokens/verify" \
@@ -213,27 +178,27 @@ curl -X GET "https://api.cloudflare.com/client/v4/user/tokens/verify" \
   -H "Content-Type: application/json"
 ```
 
-### Hostname sudah ada
-Script akan skip jika hostname sudah ada di tunnel config.
+### Hostname already exists
+The script will skip if the hostname already exists in the tunnel config.
 
-### DNS tidak resolve
-Wait 1-2 menit untuk DNS propagation.
+### DNS not resolving
+Wait 1–2 minutes for DNS propagation.
 
 ---
 
-## Benefits
+## Before vs After
 
-**Manual (sebelum):**
+**Manual (before):**
 1. Deploy container
-2. Buka Cloudflare Dashboard
-3. Navigate ke Tunnels
+2. Open Cloudflare Dashboard
+3. Navigate to Tunnels
 4. Add public hostname
-5. Fill form
+5. Fill in the form
 6. Save
 
-**Otomatis (sekarang):**
+**Automated (now):**
 ```bash
 ./scripts/cloudflare-route.sh myapp.yourdomain.com
 ```
 
-**Hemat waktu 90%!** ⚡
+**90% time saved!** ⚡

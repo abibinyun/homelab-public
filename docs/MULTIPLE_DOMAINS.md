@@ -1,44 +1,44 @@
 # Multiple Domain Setup
 
-Setup untuk menggunakan multiple domain (bukan hanya subdomain) di homelab yang sama.
+Setup for using multiple domains (not just subdomains) in the same homelab.
 
-## Konsep
+## Concept
 
 ```
 Internet → Cloudflare Tunnel → Traefik → Routing by domain/subdomain → Container
 ```
 
-**1 Tunnel, Multiple Domain:**
+**1 Tunnel, Multiple Domains:**
 - `myapp.com` → Container A
 - `another-domain.com` → Container B
 - `subdomain.yourdomain.com` → Container C
 
-Traefik routing berdasarkan `Host` header dari request.
+Traefik routes based on the `Host` header of each request.
 
 ---
 
-## Setup Domain Baru
+## Adding a New Domain
 
-### 1. Tambahkan Domain ke Cloudflare
+### 1. Add the Domain to Cloudflare
 
-1. Login ke Cloudflare Dashboard
-2. Add domain baru (myapp.com, another-domain.com, dll)
-3. Update nameserver di registrar domain
+1. Log in to the Cloudflare Dashboard
+2. Add the new domain (myapp.com, another-domain.com, etc.)
+3. Update the nameservers at your domain registrar
 
-### 2. Tambahkan ke Cloudflare Tunnel
+### 2. Add to Cloudflare Tunnel
 
-Di Cloudflare Dashboard → Networks → Tunnels → homelab → Public Hostname:
+In Cloudflare Dashboard → Networks → Tunnels → homelab → Public Hostname:
 
-**Untuk root domain:**
-- Hostname: `myapp.com` (kosongkan subdomain)
+**For root domain:**
+- Hostname: `myapp.com` (leave subdomain empty)
 - Service: `http://traefik:80`
 
-**Untuk subdomain:**
+**For subdomain:**
 - Subdomain: `www`
 - Domain: `myapp.com`
 - Service: `http://traefik:80`
 
-**Untuk wildcard (opsional):**
+**For wildcard (optional):**
 - Subdomain: `*`
 - Domain: `myapp.com`
 - Service: `http://traefik:80`
@@ -67,7 +67,7 @@ Di Cloudflare Dashboard → Networks → Tunnels → homelab → Public Hostname
       - web
     labels:
       - "traefik.enable=true"
-      # Domain lain
+      # Another domain
       - "traefik.http.routers.another.rule=Host(`another-domain.com`)"
       - "traefik.http.routers.another.entrypoints=web"
       - "traefik.http.services.another.loadbalancer.server.port=8080"
@@ -81,15 +81,15 @@ docker compose up -d
 
 ---
 
-## Multiple Domain untuk 1 App
+## Multiple Domains for One App
 
-Jika 1 app perlu accessible dari multiple domain:
+If one app needs to be accessible from multiple domains:
 
 ```yaml
   myapp:
     labels:
       - "traefik.enable=true"
-      # Multiple domain dengan OR operator
+      # Multiple domains with OR operator
       - "traefik.http.routers.myapp.rule=Host(`myapp.com`) || Host(`www.myapp.com`) || Host(`myapp.yourdomain.com`)"
       - "traefik.http.routers.myapp.entrypoints=web"
       - "traefik.http.services.myapp.loadbalancer.server.port=3000"
@@ -97,7 +97,7 @@ Jika 1 app perlu accessible dari multiple domain:
 
 ---
 
-## Redirect www ke non-www (atau sebaliknya)
+## Redirect www to non-www (or vice versa)
 
 ### Redirect www → non-www
 
@@ -106,14 +106,14 @@ Jika 1 app perlu accessible dari multiple domain:
     labels:
       - "traefik.enable=true"
       
-      # Router untuk www (redirect)
+      # Router for www (redirect)
       - "traefik.http.routers.myapp-www.rule=Host(`www.myapp.com`)"
       - "traefik.http.routers.myapp-www.middlewares=redirect-to-non-www"
       - "traefik.http.middlewares.redirect-to-non-www.redirectregex.regex=^https://www\\.(.+)"
       - "traefik.http.middlewares.redirect-to-non-www.redirectregex.replacement=https://$${1}"
       - "traefik.http.middlewares.redirect-to-non-www.redirectregex.permanent=true"
       
-      # Router untuk non-www (main)
+      # Router for non-www (main)
       - "traefik.http.routers.myapp.rule=Host(`myapp.com`)"
       - "traefik.http.routers.myapp.entrypoints=web"
       - "traefik.http.services.myapp.loadbalancer.server.port=3000"
@@ -126,14 +126,14 @@ Jika 1 app perlu accessible dari multiple domain:
     labels:
       - "traefik.enable=true"
       
-      # Router untuk non-www (redirect)
+      # Router for non-www (redirect)
       - "traefik.http.routers.myapp-nonwww.rule=Host(`myapp.com`)"
       - "traefik.http.routers.myapp-nonwww.middlewares=redirect-to-www"
       - "traefik.http.middlewares.redirect-to-www.redirectregex.regex=^https://(?:www\\.)?(.+)"
       - "traefik.http.middlewares.redirect-to-www.redirectregex.replacement=https://www.$${1}"
       - "traefik.http.middlewares.redirect-to-www.redirectregex.permanent=true"
       
-      # Router untuk www (main)
+      # Router for www (main)
       - "traefik.http.routers.myapp.rule=Host(`www.myapp.com`)"
       - "traefik.http.routers.myapp.entrypoints=web"
       - "traefik.http.services.myapp.loadbalancer.server.port=3000"
@@ -143,7 +143,7 @@ Jika 1 app perlu accessible dari multiple domain:
 
 ## Path-based Routing
 
-Jika ingin routing berdasarkan path (bukan domain):
+To route based on path (not domain):
 
 ```yaml
   api:
@@ -159,21 +159,21 @@ Jika ingin routing berdasarkan path (bukan domain):
       - "traefik.http.services.frontend.loadbalancer.server.port=8080"
 ```
 
-Request:
-- `myapp.com/api/*` → Container API
-- `myapp.com/*` → Container Frontend
+Requests:
+- `myapp.com/api/*` → API container
+- `myapp.com/*` → Frontend container
 
 ---
 
-## Contoh Lengkap: Multi-Domain Setup
+## Full Example: Multi-Domain Setup
 
 ```yaml
 services:
   traefik:
     image: traefik:v3
-    # ... (config sama seperti sebelumnya)
+    # ... (same config as before)
 
-  # App 1: Domain sendiri
+  # App 1: Own domain
   myapp:
     build: ./projects/myapp
     container_name: myapp
@@ -186,7 +186,7 @@ services:
       - "traefik.http.routers.myapp.entrypoints=web"
       - "traefik.http.services.myapp.loadbalancer.server.port=3000"
 
-  # App 2: Domain lain
+  # App 2: Another domain
   shop:
     build: ./projects/shop
     container_name: shop
@@ -199,7 +199,7 @@ services:
       - "traefik.http.routers.shop.entrypoints=web"
       - "traefik.http.services.shop.loadbalancer.server.port=8080"
 
-  # App 3: Subdomain dari domain utama
+  # App 3: Subdomain of primary domain
   blog:
     build: ./projects/blog
     container_name: blog
@@ -217,7 +217,7 @@ networks:
     driver: bridge
 ```
 
-**Cloudflare Tunnel Public Hostname:**
+**Cloudflare Tunnel Public Hostnames:**
 - `myapp.com` → `http://traefik:80`
 - `www.myapp.com` → `http://traefik:80`
 - `myshop.com` → `http://traefik:80`
@@ -227,12 +227,12 @@ networks:
 
 ## Tips
 
-### 1. Testing Lokal
-Tambahkan di `/etc/hosts` untuk testing:
+### 1. Local Testing
+Add to `/etc/hosts` for local testing:
 ```bash
 sudo nano /etc/hosts
 
-# Tambahkan:
+# Add:
 127.0.0.1 myapp.com
 127.0.0.1 www.myapp.com
 127.0.0.1 myshop.com
@@ -243,51 +243,51 @@ Test:
 curl http://myapp.com
 ```
 
-### 2. Cek Routing Traefik
+### 2. Check Traefik Routing
 ```bash
-# Lihat semua routers
+# List all routers
 curl http://localhost:8080/api/http/routers | jq
 
-# Cek router spesifik
+# Check a specific router
 curl http://localhost:8080/api/http/routers | jq '.[] | select(.name=="myapp@docker")'
 ```
 
 ### 3. Debug
 ```bash
-# Test dengan Host header
+# Test with Host header
 curl -H "Host: myapp.com" http://localhost:80
 
-# Lihat logs
+# View logs
 docker compose logs traefik | grep myapp
 ```
 
 ---
 
-## Biaya
+## Cost
 
 **Cloudflare Tunnel:**
-- ✅ Gratis untuk unlimited domain
-- ✅ Gratis untuk unlimited subdomain
-- ✅ Gratis untuk unlimited traffic
+- ✅ Free for unlimited domains
+- ✅ Free for unlimited subdomains
+- ✅ Free for unlimited traffic
 
-**Domain:**
-- Biaya registrasi domain per tahun (tergantung registrar)
-- Cloudflare bisa jadi registrar (harga kompetitif)
+**Domains:**
+- Annual domain registration fee (varies by registrar)
+- Cloudflare can act as your registrar (competitive pricing)
 
 ---
 
-## Kesimpulan
+## Summary
 
-- ✅ 1 homelab bisa handle unlimited domain
-- ✅ 1 Cloudflare Tunnel untuk semua domain
-- ✅ Traefik routing otomatis berdasarkan Host header
-- ✅ Tinggal ganti label di docker-compose.yml
-- ✅ Tidak perlu ubah infrastruktur
+- ✅ One homelab can handle unlimited domains
+- ✅ One Cloudflare Tunnel for all domains
+- ✅ Traefik routes automatically based on Host header
+- ✅ Just update labels in docker-compose.yml
+- ✅ No infrastructure changes needed
 
 **Workflow:**
-1. Beli domain baru
-2. Tambahkan ke Cloudflare
-3. Tambahkan Public Hostname di Tunnel (service: `http://traefik:80`)
-4. Update label di docker-compose.yml
+1. Buy a new domain
+2. Add it to Cloudflare
+3. Add Public Hostname in Tunnel (service: `http://traefik:80`)
+4. Update labels in docker-compose.yml
 5. Deploy: `docker compose up -d`
-6. Done! Domain baru langsung jalan
+6. Done! New domain is live immediately

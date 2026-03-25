@@ -8,13 +8,13 @@
 
 ## Reporting a Vulnerability
 
-**Jangan buat GitHub Issue untuk vulnerability.**
+**Do not open a GitHub Issue for vulnerabilities.**
 
-Kirim email ke: **jobs.muhammadbilal@gmail.com**
+Send an email to: **jobs.muhammadbilal@gmail.com**
 
-Sertakan:
-- Deskripsi vulnerability
-- Langkah reproduksi
-- Dampak potensial
+Include:
+- Vulnerability description
+- Steps to reproduce
+- Potential impact
 
-Response dalam 48 jam. Patch akan dirilis secepat mungkin.
+We will respond within 48 hours. A patch will be released as soon as possible.

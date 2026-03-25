@@ -1,6 +1,6 @@
 # Security Hardening Guide
 
-Security enhancements yang sudah diterapkan untuk homelab.
+Security enhancements implemented for the homelab.
 
 ## ✅ Implemented Security Features
 
@@ -8,9 +8,9 @@ Security enhancements yang sudah diterapkan untuk homelab.
 **Status:** ✅ Active
 
 **What it does:**
-- Isolasi akses ke Docker socket
-- Hanya expose API yang diperlukan
-- Prevent container escape attacks
+- Isolates access to the Docker socket
+- Only exposes required APIs
+- Prevents container escape attacks
 
 **Implementation:**
 ```yaml
@@ -29,7 +29,7 @@ docker-socket-proxy:
     - socket-proxy (internal network)
 ```
 
-Traefik connect via TCP instead of direct socket mount.
+Traefik connects via TCP instead of a direct socket mount.
 
 ### 2. Security Headers
 **Status:** ✅ Active
@@ -53,7 +53,7 @@ curl -I http://localhost:80 -H "Host: whoami.yourdomain.com"
 - `web` - Public services (Traefik, apps)
 - `socket-proxy` - Internal only (Docker socket proxy)
 
-Internal networks cannot access internet.
+Internal networks cannot access the internet.
 
 ### 4. Container Security
 **Status:** ✅ Active
@@ -92,7 +92,7 @@ sudo ./scripts/security-hardening.sh
 - [ ] Auto-updates (run script)
 
 ### Medium Priority (Optional)
-- [x] Change default passwords in `.env` — **ADMIN_PASSWORD wajib diisi, app throw error jika kosong**
+- [x] Change default passwords in `.env` — **ADMIN_PASSWORD is required — app throws error if not set**
 - [ ] Setup Cloudflare Access for sensitive subdomains
 - [ ] Enable Cloudflare WAF rules
 - [ ] Regular security audits
@@ -168,13 +168,13 @@ docker compose ps
 ## 🛡️ Security Headers Explained
 
 ### X-Frame-Options: DENY
-Prevents your site from being embedded in iframe (clickjacking protection).
+Prevents your site from being embedded in an iframe (clickjacking protection).
 
 ### X-Content-Type-Options: nosniff
-Prevents browser from MIME-sniffing (security risk).
+Prevents the browser from MIME-sniffing (security risk).
 
 ### X-XSS-Protection: 1; mode=block
-Enables browser XSS filter and blocks page if attack detected.
+Enables the browser XSS filter and blocks the page if an attack is detected.
 
 ### Referrer-Policy: strict-origin-when-cross-origin
 Controls how much referrer information is sent with requests.

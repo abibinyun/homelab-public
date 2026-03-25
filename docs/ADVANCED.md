@@ -7,28 +7,28 @@
 ./scripts/backup.sh
 ```
 
-Backup akan menyimpan:
+Backup includes:
 - docker-compose.yml
 - .env
 - Database dumps (PostgreSQL, MySQL)
 - Data volumes
 - Logs
 
-Backup disimpan di `./backups/backup_YYYYMMDD_HHMMSS.tar.gz`
+Backups are stored in `./backups/backup_YYYYMMDD_HHMMSS.tar.gz`
 
 ### Auto Backup (Cron)
 ```bash
 # Edit crontab
 crontab -e
 
-# Tambahkan (backup setiap hari jam 2 pagi)
-0 2 * * * cd /home/abibinyun/data/homelab && ./scripts/backup.sh
+# Add (daily backup at 2am)
+0 2 * * * cd /home/user/homelab && ./scripts/backup.sh
 ```
 
 ### Restore
 ```bash
 ./scripts/maintenance.sh
-# Pilih opsi 6 (Restore dari backup)
+# Choose option 6 (Restore from backup)
 ```
 
 ---
@@ -36,88 +36,88 @@ crontab -e
 ## 💾 Database Setup
 
 ### PostgreSQL
-Uncomment di `docker-compose.yml`:
+Uncomment in `docker-compose.yml`:
 ```yaml
 postgres:
   image: postgres:15-alpine
   ...
 ```
 
-Jalankan:
+Run:
 ```bash
 docker compose up -d postgres
 ```
 
-Connect dari app:
+Connect from app:
 ```
-DATABASE_URL=postgresql://postgres:changeme@postgres:5432/homelab
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@postgres:5432/homelab
 ```
 
 ### MySQL
-Uncomment di `docker-compose.yml`:
+Uncomment in `docker-compose.yml`:
 ```yaml
 mysql:
   image: mysql:8-oracle
   ...
 ```
 
-Connect dari app:
+Connect from app:
 ```
-DATABASE_URL=mysql://root:changeme@mysql:3306/homelab
+DATABASE_URL=mysql://root:YOUR_PASSWORD@mysql:3306/homelab
 ```
 
 ### Redis
-Uncomment di `docker-compose.yml`:
+Uncomment in `docker-compose.yml`:
 ```yaml
 redis:
   image: redis:7-alpine
   ...
 ```
 
-Connect dari app:
+Connect from app:
 ```
-REDIS_URL=redis://:changeme@redis:6379
+REDIS_URL=redis://:YOUR_PASSWORD@redis:6379
 ```
 
-### Backup Database Manual
+### Manual Database Backup
 ```bash
 # PostgreSQL
 docker exec postgres pg_dumpall -U postgres > backup.sql
 
 # MySQL
-docker exec mysql mysqldump -u root -pchangeme --all-databases > backup.sql
+docker exec mysql mysqldump -u root -pYOUR_PASSWORD --all-databases > backup.sql
 
 # Restore PostgreSQL
 cat backup.sql | docker exec -i postgres psql -U postgres
 
 # Restore MySQL
-cat backup.sql | docker exec -i mysql mysql -u root -pchangeme
+cat backup.sql | docker exec -i mysql mysql -u root -pYOUR_PASSWORD
 ```
 
 ---
 
-## 📊 Monitoring dengan Uptime Kuma
+## 📊 Monitoring with Uptime Kuma
 
-Uncomment di `docker-compose.yml`:
+Uncomment in `docker-compose.yml`:
 ```yaml
 uptime-kuma:
   image: louislam/uptime-kuma:1
   ...
 ```
 
-Jalankan:
+Run:
 ```bash
 docker compose up -d uptime-kuma
 ```
 
-Tambahkan di Cloudflare Tunnel:
+Add in Cloudflare Tunnel:
 - Subdomain: `uptime`
 - Service: `http://traefik:80`
 
-Akses: https://uptime.yourdomain.com
+Access: https://uptime.yourdomain.com
 
-Setup monitoring untuk:
-- Semua subdomain (whoami, testapp, dll)
+Set up monitoring for:
+- All subdomains (whoami, apps, etc.)
 - Database health checks
 - Server resources
 
@@ -125,27 +125,27 @@ Setup monitoring untuk:
 
 ## 🐳 Portainer (Docker Management UI)
 
-Portainer sudah terinstall dan hanya accessible dari localhost untuk keamanan.
+Portainer is installed and only accessible from localhost for security.
 
-Akses:
+Access:
 ```
 http://localhost:9000
 ```
 
-Setup pertama kali:
-1. Buat admin user (password min 12 karakter)
-2. Connect ke local Docker environment
+Initial setup:
+1. Create an admin user (password min 12 characters)
+2. Connect to the local Docker environment
 3. Done!
 
-Fitur:
+Features:
 - Manage containers (start/stop/restart)
-- View logs real-time
+- View real-time logs
 - Monitor resource usage
 - Deploy stacks
 - Manage images & volumes
 - Container console access
 
-**Catatan:** Portainer tidak di-expose ke internet untuk keamanan. Hanya bisa diakses dari laptop/server langsung.
+**Note:** Portainer is not exposed to the internet for security. It can only be accessed directly from the server.
 
 ---
 
@@ -154,25 +154,25 @@ Fitur:
 ### Update Containers
 ```bash
 ./scripts/maintenance.sh
-# Pilih opsi 1
+# Choose option 1
 ```
 
 ### Cleanup
 ```bash
 ./scripts/maintenance.sh
-# Pilih opsi 2
+# Choose option 2
 ```
 
 ### Resource Usage
 ```bash
 ./scripts/maintenance.sh
-# Pilih opsi 3
+# Choose option 3
 ```
 
 ### View Logs
 ```bash
 ./scripts/maintenance.sh
-# Pilih opsi 4
+# Choose option 4
 ```
 
 ---
@@ -180,17 +180,17 @@ Fitur:
 ## 📝 Log Management
 
 ### Log Rotation
-Otomatis rotate logs setiap hari, simpan 7 hari terakhir.
+Logs are automatically rotated daily, keeping the last 7 days.
 
 Manual:
 ```bash
 ./scripts/maintenance.sh
-# Pilih opsi 7
+# Choose option 7
 ```
 
 ### View Logs
 ```bash
-# Semua services
+# All services
 docker compose logs -f
 
 # Specific service
@@ -205,25 +205,24 @@ tail -f logs/access.log
 
 ---
 
-## 🚀 CI/CD - Auto Deploy dari Git
+## 🚀 CI/CD — Auto Deploy from Git
 
 ### Setup
 ```bash
 ./scripts/auto-deploy.sh myapp https://github.com/user/repo.git
 ```
 
-Script akan:
-1. Clone/pull repository ke `./projects/myapp`
-2. Build Docker image
-3. Deploy container
+The script will:
+1. Clone/pull the repository to `./projects/myapp`
+2. Build the Docker image
+3. Deploy the container
 4. Show logs
 
 ### Webhook (GitHub/GitLab)
-Setup webhook untuk auto-deploy saat push:
+Set up a webhook for auto-deploy on push:
 
-1. Install webhook handler:
+1. Add a webhook service in `docker-compose.yml`:
 ```bash
-# Tambahkan webhook service di docker-compose.yml
 webhook:
   image: almir/webhook
   container_name: webhook
@@ -238,7 +237,7 @@ webhook:
     - "traefik.http.routers.webhook.rule=Host(`webhook.yourdomain.com`)"
 ```
 
-2. Buat `hooks.json`:
+2. Create `hooks.json`:
 ```json
 [
   {
@@ -259,7 +258,7 @@ webhook:
 ]
 ```
 
-3. Setup webhook di GitHub:
+3. Set up the webhook in GitHub:
    - URL: `https://webhook.yourdomain.com/hooks/deploy-myapp`
    - Content type: `application/json`
    - Events: `push`
@@ -278,10 +277,10 @@ nano .env
 ```
 
 ### Best Practices
-- ✅ Gunakan password yang kuat (min 16 karakter)
-- ✅ Berbeda untuk setiap service
-- ✅ Backup .env secara terpisah
-- ✅ Jangan commit .env ke Git
+- ✅ Use strong passwords (min 16 characters)
+- ✅ Different password for each service
+- ✅ Back up .env separately
+- ✅ Do not commit .env to Git
 
 ---
 
@@ -298,7 +297,6 @@ homelab/
 │   └── another-app/
 ├── data/                    # Persistent data
 │   ├── postgres/
-│   ├── mysql/
 │   ├── redis/
 │   └── uptime-kuma/
 ├── backups/                 # Backups
@@ -314,7 +312,7 @@ homelab/
 
 ## 🔍 Troubleshooting
 
-### Container tidak start
+### Container won't start
 ```bash
 docker compose logs <service-name>
 docker inspect <container-name>
@@ -322,22 +320,22 @@ docker inspect <container-name>
 
 ### Database connection failed
 ```bash
-# Cek database running
+# Check database is running
 docker compose ps postgres
 
-# Cek logs
+# Check logs
 docker compose logs postgres
 
 # Test connection
 docker exec -it postgres psql -U postgres
 ```
 
-### Disk penuh
+### Disk full
 ```bash
 # Cleanup
 docker system prune -af --volumes
 
-# Cek usage
+# Check usage
 df -h
 du -sh data/*
 ```

@@ -1,10 +1,10 @@
-# Panduan Menambahkan Project ke Homelab
+# Adding Projects to Homelab
 
-Semua project (Node.js, Ruby, PHP, Java, dll) bisa ditambahkan dengan cara yang sama: buat Dockerfile, tambahkan ke docker-compose.yml, dan expose via Traefik.
+All projects (Node.js, Ruby, PHP, Java, etc.) can be added the same way: create a Dockerfile, add it to docker-compose.yml, and expose it via Traefik.
 
-## Template Umum
+## General Template
 
-### 1. Struktur Folder
+### 1. Folder Structure
 
 ```
 homelab/
@@ -23,14 +23,14 @@ homelab/
 │       └── target/
 ```
 
-### 2. Tambahkan ke docker-compose.yml
+### 2. Add to docker-compose.yml
 
 ```yaml
   myapp:
     build: ./projects/myapp-nodejs
     container_name: myapp
     restart: unless-stopped
-    # Tidak pakai profiles = auto-start production
+    # No profiles = auto-start in production
     environment:
       - NODE_ENV=production
     networks:
@@ -39,7 +39,7 @@ homelab/
       - "traefik.enable=true"
       - "traefik.http.routers.myapp.rule=Host(`myapp.yourdomain.com`)"
       - "traefik.http.routers.myapp.entrypoints=web"
-      - "traefik.http.services.myapp.loadbalancer.server.port=3000"  # Port app kamu
+      - "traefik.http.services.myapp.loadbalancer.server.port=3000"  # Your app's port
 ```
 
 **Development service (manual start):**
@@ -49,7 +49,7 @@ homelab/
     container_name: myapp-dev
     restart: unless-stopped
     profiles:
-      - dev  # Manual start dengan: docker compose --profile dev up -d
+      - dev  # Manual start with: docker compose --profile dev up -d
     environment:
       - NODE_ENV=development
     networks:
@@ -59,21 +59,21 @@ homelab/
       - "traefik.http.routers.myapp-dev.rule=Host(`myapp-dev.yourdomain.com`)"
 ```
 
-### 3. Tambahkan di Cloudflare Tunnel
+### 3. Add to Cloudflare Tunnel
 
-Di Cloudflare Dashboard → Tunnels → homelab → Public Hostname:
+In Cloudflare Dashboard → Tunnels → homelab → Public Hostname:
 - Subdomain: `myapp`
 - Domain: `yourdomain.com`
 - Service: `http://traefik:80`
 
-**⚠️ Penting:** Service SELALU `http://traefik:80` untuk semua project. Traefik yang akan routing ke container yang benar berdasarkan subdomain.
+**⚠️ Important:** The service is ALWAYS `http://traefik:80` for all projects. Traefik handles routing to the correct container based on subdomain.
 
-Jadi workflow-nya:
+The flow:
 ```
 Internet → Cloudflare Tunnel → traefik:80 → Traefik (routing by subdomain) → Container
 ```
 
-Satu tunnel, satu entry point, unlimited subdomain!
+One tunnel, one entry point, unlimited subdomains!
 
 ### 4. Deploy
 
@@ -83,7 +83,7 @@ docker compose up -d myapp
 
 ---
 
-## Contoh per Bahasa/Framework
+## Examples by Language/Framework
 
 ### Node.js / Express
 
@@ -284,9 +284,9 @@ CMD ["./main"]
 
 ---
 
-## Dengan Database
+## With a Database
 
-Jika app butuh database, tambahkan service database:
+If your app needs a database, add a database service:
 
 ```yaml
   myapp:
@@ -319,9 +319,9 @@ Jika app butuh database, tambahkan service database:
 
 ---
 
-## Pakai Image Existing (Tanpa Build)
+## Using an Existing Image (No Build)
 
-Jika sudah ada image di Docker Hub:
+If you already have an image on Docker Hub:
 
 ```yaml
   existing-app:
@@ -338,13 +338,13 @@ Jika sudah ada image di Docker Hub:
 
 ---
 
-## Tips Penting
+## Important Tips
 
-1. **Port yang benar**: Pastikan `loadbalancer.server.port` sesuai dengan port yang di-EXPOSE di Dockerfile
-2. **Network**: Semua service harus di network `web`
-3. **Subdomain unik**: Setiap service harus punya subdomain berbeda
-4. **Environment variables**: Simpan secrets di `.env` dan reference dengan `${VAR_NAME}`
-5. **Health checks**: Tambahkan health check untuk production:
+1. **Correct port**: Ensure `loadbalancer.server.port` matches the port EXPOSEd in your Dockerfile
+2. **Network**: All services must be on the `web` network
+3. **Unique subdomain**: Each service must have a different subdomain
+4. **Environment variables**: Store secrets in `.env` and reference them with `${VAR_NAME}`
+5. **Health checks**: Add health checks for production:
    ```yaml
    healthcheck:
      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
@@ -355,32 +355,32 @@ Jika sudah ada image di Docker Hub:
 
 ---
 
-## Workflow Deploy
+## Deploy Workflow
 
 ```bash
-# 1. Development di folder project sendiri
+# 1. Develop in your project folder
 cd /home/user/myproject
-# Kerja development seperti biasa
+# Work on development as usual
 
-# 2. Ready production → Copy ke homelab
-cp -r /home/user/myproject /home/abibinyun/data/homelab/projects/myproject
+# 2. Ready for production → copy to homelab
+cp -r /home/user/myproject /path/to/homelab/projects/myproject
 
-# 3. Buat Dockerfile (jika belum ada)
-cd /home/abibinyun/data/homelab/projects/myproject
-# Buat Dockerfile sesuai bahasa
+# 3. Create a Dockerfile (if not already present)
+cd /path/to/homelab/projects/myproject
+# Create Dockerfile for your language
 
-# 4. Edit docker-compose.yml di homelab root, tambahkan service
-cd /home/abibinyun/data/homelab
+# 4. Edit docker-compose.yml in homelab root, add the service
+cd /path/to/homelab
 nano docker-compose.yml
 
-# 5. Build dan jalankan
+# 5. Build and run
 docker compose build myproject
 docker compose up -d myproject
 
-# 6. Cek logs
+# 6. Check logs
 docker compose logs -f myproject
 
-# 7. Tambahkan subdomain di Cloudflare Tunnel
+# 7. Add subdomain in Cloudflare Tunnel
 # Subdomain: myproject
 # Service: http://traefik:80
 
@@ -388,7 +388,7 @@ docker compose logs -f myproject
 curl https://myproject.yourdomain.com
 ```
 
-**Atau pakai script otomatis:**
+**Or use the automated script:**
 ```bash
 ./scripts/deploy.sh
 # Input: myproject, myproject, ./projects/myproject, 3000
@@ -400,19 +400,19 @@ Done! 🚀
 
 ## Troubleshooting
 
-**Container restart terus:**
+**Container keeps restarting:**
 ```bash
 docker compose logs myapp
 ```
 
-**Port salah:**
+**Wrong port:**
 ```bash
-# Cek port yang di-expose container
+# Check the port exposed by the container
 docker inspect myapp | grep -A 5 ExposedPorts
 ```
 
-**Traefik tidak routing:**
+**Traefik not routing:**
 ```bash
-# Cek router terdaftar
+# Check registered routers
 curl http://localhost:8080/api/http/routers | jq
 ```

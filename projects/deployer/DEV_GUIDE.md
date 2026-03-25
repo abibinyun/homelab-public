@@ -2,19 +2,19 @@
 
 ## Quick Start
 
-### Demo Mode (preview UI)
+### Demo Mode (UI preview)
 ```bash
 ./scripts/setup-demo.sh
 ```
-- Tidak butuh domain/Cloudflare/Traefik
+- No domain, Cloudflare, or Traefik required
 - Login: `demo` / `demo1234`
-- Semua action di-disable
-- Akses: `http://localhost:3000`
+- All actions disabled
+- Access: `http://localhost:3000`
 
 ### Development Mode (hot reload)
 ```bash
 npm install
-cp .env.example .env  # isi ADMIN_USER + ADMIN_PASSWORD minimal
+cp .env.example .env  # fill in at least ADMIN_USER and ADMIN_PASSWORD
 npm run dev
 ```
 - Frontend: `http://localhost:5173`
@@ -25,7 +25,7 @@ npm run dev
 ./scripts/setup.sh
 ```
 - Full setup: Traefik + Cloudflare + Postgres + Redis + Deployer
-- Akses: `https://deploy.yourdomain.com`
+- Access: `https://deploy.yourdomain.com`
 
 ## Environment
 
@@ -37,16 +37,16 @@ npm run dev
 
 ## Private Repository
 
-### Cara 1: HTTPS Token (Recommended)
-Saat buat project, isi field **Git Token** dengan Personal Access Token dari GitHub/GitLab.
-Token di-encrypt dengan `ENCRYPTION_KEY` sebelum disimpan.
+### Option 1: HTTPS Token (Recommended)
+When creating a project, fill in the **Git Token** field with a Personal Access Token from GitHub/GitLab.
+The token is encrypted with `ENCRYPTION_KEY` before being stored.
 
-### Cara 2: SSH Key
-1. Buka **Settings → SSH Key** di UI untuk lihat public key
-2. Tambahkan public key tersebut ke GitHub/GitLab account (Settings → SSH Keys)
-3. Gunakan SSH URL saat buat project: `git@github.com:user/repo.git`
+### Option 2: SSH Key
+1. Go to **Settings → SSH Key** in the UI to view the public key
+2. Add that public key to your GitHub/GitLab account (Settings → SSH Keys)
+3. Use the SSH URL when creating a project: `git@github.com:user/repo.git`
 
-> SSH key di-generate otomatis saat container pertama kali jalan, disimpan di volume Docker.
+> The SSH key is auto-generated when the container first starts, stored in a Docker volume.
 
 ## Troubleshooting
 
@@ -57,9 +57,9 @@ lsof -i :5173
 ```
 
 **Database connection error:**
-- Pastikan `DATABASE_URL` di `.env` sudah benar
-- Jika kosong, server otomatis fallback ke JSON file storage
+- Ensure `DATABASE_URL` in `.env` is correct
+- If empty, the server automatically falls back to JSON file storage
 
-**Hot reload tidak jalan:**
+**Hot reload not working:**
 - Hard refresh: `Ctrl+Shift+R`
-- Cek terminal Vite untuk error
+- Check the Vite terminal for errors

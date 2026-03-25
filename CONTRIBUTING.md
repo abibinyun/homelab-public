@@ -8,7 +8,7 @@ Contributions are welcome! Bug fixes, improvements, and new features are all app
 git clone https://github.com/abibinyun/homelab-public.git
 cd homelab-public/projects/deployer
 npm install
-cp .env.example .env   # isi ADMIN_USER, ADMIN_PASSWORD, JWT_SECRET minimal
+cp .env.example .env   # fill in at least ADMIN_USER, ADMIN_PASSWORD, JWT_SECRET
 npm run dev
 ```
 
@@ -30,21 +30,21 @@ projects/deployer/
 ## Guidelines
 
 - **TypeScript** — no `any` unless unavoidable
-- **Error handling** — gunakan custom error classes di `api/types/index.ts`
-- **Logging** — gunakan `logger` dari `api/utils/logger.ts`, bukan `console.log`
-- **Env vars** — tambah ke `.env.example` dengan komentar yang jelas
-- **No hardcoded values** — passwords, tokens, ports harus dari env variable
+- **Error handling** — use custom error classes in `api/types/index.ts`
+- **Logging** — use `logger` from `api/utils/logger.ts`, not `console.log`
+- **Env vars** — add to `.env.example` with clear comments
+- **No hardcoded values** — passwords, tokens, and ports must come from env variables
 
 ## Pull Request Process
 
-1. Fork repo dan buat branch dari `main`
-2. Pastikan `npm run build` berhasil tanpa error
-3. Update `CHANGELOG.md` di bagian `[Unreleased]`
-4. Buat PR dengan deskripsi yang jelas
+1. Fork the repo and create a branch from `main`
+2. Ensure `npm run build` succeeds without errors
+3. Update `CHANGELOG.md` under the `[Unreleased]` section
+4. Open a PR with a clear description
 
 ## Reporting Bugs
 
-Gunakan [GitHub Issues](https://github.com/abibinyun/homelab-public/issues) dengan template yang tersedia.
+Use [GitHub Issues](https://github.com/abibinyun/homelab-public/issues) with the available template.
 
 ## License
 
