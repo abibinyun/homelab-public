@@ -7,6 +7,8 @@ declare global {
         username: string;
         userId: number;
         isAdmin: boolean;
+        role?: string;
+        clientId?: number;
       };
       id?: string;
     }

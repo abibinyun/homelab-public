@@ -113,6 +113,53 @@ export async function updateProjectResources(name: string, resources: {
   return handleResponse(res);
 }
 
+export async function getClients(): Promise<any[]> {
+  const res = await apiCall('/api/clients');
+  const j = await res.json();
+  return j.data || [];
+}
+
+export async function getClientDomains(clientId: number): Promise<any[]> {
+  const res = await apiCall(`/api/clients/${clientId}/domains`);
+  const j = await res.json();
+  return j.data || [];
+}
+
+export async function getDeployLogs(projectName: string): Promise<any[]> {
+  const res = await apiCall(`/api/projects/${projectName}/deploys`);
+  const j = await res.json();
+  return j.data || [];
+}
+
+export async function getUsers(): Promise<any[]> {
+  const res = await apiCall('/api/users');
+  const j = await res.json();
+  return j.data || [];
+}
+
+export async function createUser(data: { username: string; email?: string; password: string; role: string; clientId?: number }): Promise<any> {
+  const res = await apiCall('/api/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+export async function deleteUser(username: string): Promise<void> {
+  const res = await apiCall(`/api/users/${username}`, { method: 'DELETE' });
+  return handleResponse(res);
+}
+
+export async function updateUser(username: string, data: { role?: string; clientId?: number; password?: string }): Promise<void> {
+  const res = await apiCall(`/api/users/${username}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
 export async function getSettings(): Promise<any> {
   const res = await apiCall('/api/settings');
   return handleResponse(res);

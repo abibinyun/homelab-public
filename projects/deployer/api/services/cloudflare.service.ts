@@ -12,12 +12,12 @@ export class CloudflareService {
   private config: CloudflareConfig;
   private baseUrl = 'https://api.cloudflare.com/client/v4';
 
-  constructor() {
+  constructor(overrides?: Partial<CloudflareConfig>) {
     this.config = {
-      apiToken: process.env.CLOUDFLARE_API_TOKEN || '',
-      zoneId: process.env.CLOUDFLARE_ZONE_ID || '',
-      tunnelId: process.env.CLOUDFLARE_TUNNEL_ID || '',
-      accountId: process.env.CLOUDFLARE_ACCOUNT_ID || ''
+      apiToken: overrides?.apiToken || process.env.CLOUDFLARE_API_TOKEN || '',
+      zoneId: overrides?.zoneId || process.env.CLOUDFLARE_ZONE_ID || '',
+      tunnelId: overrides?.tunnelId || process.env.CLOUDFLARE_TUNNEL_ID || '',
+      accountId: overrides?.accountId || process.env.CLOUDFLARE_ACCOUNT_ID || '',
     };
   }
 

@@ -4,14 +4,14 @@ import { Project, User } from '../types/index.js';
 class PostgresRepository {
   // Projects
   async getProjects(userId?: number): Promise<Project[]> {
-    const base = 'SELECT name, git_url as "gitUrl", subdomain, env, port, user_id as "userId", git_token as "gitToken", webhook_secret as "webhookSecret", resources, created_at as "createdAt", updated_at as "updatedAt" FROM projects';
+    const base = 'SELECT name, git_url as "gitUrl", git_branch as "gitBranch", subdomain, env, port, user_id as "userId", client_id as "clientId", domain_id as "domainId", git_token as "gitToken", webhook_secret as "webhookSecret", resources, created_at as "createdAt", updated_at as "updatedAt" FROM projects';
     const query = userId ? `${base} WHERE user_id = $1 ORDER BY created_at DESC` : `${base} ORDER BY created_at DESC`;
     const result = await db.query(query, userId ? [userId] : []);
     return result.rows;
   }
 
   async getProjectByName(name: string, userId?: number): Promise<Project | null> {
-    const base = 'SELECT name, git_url as "gitUrl", subdomain, env, port, user_id as "userId", git_token as "gitToken", webhook_secret as "webhookSecret", resources, created_at as "createdAt", updated_at as "updatedAt" FROM projects';
+    const base = 'SELECT name, git_url as "gitUrl", git_branch as "gitBranch", subdomain, env, port, user_id as "userId", client_id as "clientId", domain_id as "domainId", git_token as "gitToken", webhook_secret as "webhookSecret", resources, created_at as "createdAt", updated_at as "updatedAt" FROM projects';
     const query = userId ? `${base} WHERE name = $1 AND user_id = $2` : `${base} WHERE name = $1`;
     const result = await db.query(query, userId ? [name, userId] : [name]);
     return result.rows[0] || null;
@@ -19,15 +19,18 @@ class PostgresRepository {
 
   async createProject(project: Project): Promise<void> {
     await db.query(`
-      INSERT INTO projects (name, git_url, subdomain, env, port, user_id, git_token, webhook_secret, resources, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO projects (name, git_url, git_branch, subdomain, env, port, user_id, client_id, domain_id, git_token, webhook_secret, resources, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
     `, [
       project.name,
       project.gitUrl,
+      (project as any).gitBranch || 'main',
       project.subdomain,
       JSON.stringify(project.env),
       project.port,
       project.userId || null,
+      (project as any).clientId || null,
+      (project as any).domainId || null,
       project.gitToken || null,
       project.webhookSecret || null,
       JSON.stringify(project.resources || {}),
@@ -96,6 +99,7 @@ class PostgresRepository {
     const result = await db.query(`
       SELECT 
         id, username, email, password, email_verified,
+        role, client_id,
         verification_token, verification_token_expires,
         reset_token, reset_token_expires,
         created_at as "createdAt", updated_at as "updatedAt"
@@ -149,14 +153,16 @@ class PostgresRepository {
   async createUser(user: User): Promise<void> {
     await db.query(`
       INSERT INTO users (
-        username, email, password, email_verified,
+        username, email, password, role, client_id, email_verified,
         created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `, [
       user.username,
       user.email,
       user.password,
+      user.role || 'admin',
+      (user as any).clientId || null,
       user.email_verified,
       user.createdAt,
       user.updatedAt || user.createdAt,

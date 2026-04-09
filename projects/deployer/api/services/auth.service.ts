@@ -26,6 +26,7 @@ class AuthService {
         username,
         email: process.env.ADMIN_EMAIL || 'admin@localhost',
         password: hashedPassword,
+        role: 'superadmin',
         email_verified: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

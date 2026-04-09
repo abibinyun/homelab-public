@@ -24,13 +24,16 @@ class ProjectService {
   async createProject(data: {
     name: string;
     gitUrl: string;
+    gitBranch?: string;
     subdomain: string;
     env?: Record<string, string>;
     port?: number;
     gitToken?: string;
     resources?: ProjectResources;
+    clientId?: number;
+    domainId?: number;
   }, userId: number): Promise<Omit<Project, 'gitToken'>> {
-    const existing = await storageRepository.getProjectByName(data.name, userId);
+    const existing = await storageRepository.getProjectByName(data.name);
     if (existing) throw new ConflictError(`Project '${data.name}' already exists`);
 
     const maxProjects = process.env.MAX_PROJECTS ? parseInt(process.env.MAX_PROJECTS) : 0;
@@ -41,16 +44,18 @@ class ProjectService {
       }
     }
 
-    // Merge with global defaults — project-level overrides global
     const defaultResources = await settingsService.getDefaultResources();
     const resources: ProjectResources = { ...defaultResources, ...data.resources };
 
     const project: Project = {
       name: data.name,
       gitUrl: data.gitUrl,
+      gitBranch: data.gitBranch || 'main',
       subdomain: data.subdomain,
       env: data.env || {},
       userId,
+      clientId: data.clientId,
+      domainId: data.domainId,
       port: data.port || 3000,
       gitToken: data.gitToken ? encryptToken(data.gitToken) || '' : '',
       resources,

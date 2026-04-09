@@ -15,6 +15,9 @@ import projectsRoutes from './routes/projects.js';
 import webhookRoutes from './routes/webhook.js';
 import domainRoutes from './routes/customDomain.routes.js';
 import settingsRoutes from './routes/settings.js';
+import clientsRoutes from './routes/clients.js';
+import auditRoutes from './routes/audit.js';
+import usersRoutes from './routes/users.js';
 import healthController from './controllers/health.controller.js';
 import { ResponseSerializer } from './utils/response.js';
 import config from './config/index.js';
@@ -85,6 +88,9 @@ app.use('/api/projects', projectsRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/domains', domainRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/clients', clientsRoutes);
+app.use('/api/audit-logs', auditRoutes);
+app.use('/api/users', usersRoutes);
 
 app.get('/api/ssh-key', requireAuth, async (_req, res, next) => {
   try {

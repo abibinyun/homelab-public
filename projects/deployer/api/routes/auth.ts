@@ -23,7 +23,14 @@ router.post('/logout', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 router.get('/me', requireAuth, (req, res) => {
-  ResponseSerializer.success(res, { data: { username: (req as any).user?.username, isAdmin: true } });
+  const u = req.user!;
+  ResponseSerializer.success(res, {
+    username: u.username,
+    userId: u.userId,
+    isAdmin: u.isAdmin,
+    role: u.role,
+    clientId: u.clientId,
+  });
 });
 
 export default router;

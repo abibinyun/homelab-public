@@ -8,10 +8,13 @@ export interface ProjectResources {
 export interface Project {
   name: string;
   gitUrl: string;
+  gitBranch?: string;
   subdomain: string;
   env: Record<string, string>;
   port: number;
   userId?: number;
+  clientId?: number;
+  domainId?: number;
   gitToken?: string;
   webhookSecret?: string;
   resources?: ProjectResources;
@@ -19,11 +22,77 @@ export interface Project {
   updatedAt?: string;
 }
 
+export type UserRole = 'superadmin' | 'admin' | 'client';
+
+export interface Client {
+  id: number;
+  name: string;
+  slug: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface ClientPermission {
+  id: number;
+  clientId: number;
+  canViewProjects: boolean;
+  canViewLogs: boolean;
+  canRestart: boolean;
+  canStartStop: boolean;
+  canUpdateEnv: boolean;
+  canTriggerDeploy: boolean;
+  canManageDomains: boolean;
+  canViewMetrics: boolean;
+  updatedAt: string;
+}
+
+export type CfMode = 'managed' | 'unmanaged';
+
+export interface ClientDomain {
+  id: number;
+  clientId: number;
+  domain: string;
+  cloudflareZoneId?: string;
+  cloudflareApiToken?: string;
+  tunnelId?: string;
+  cfMode: CfMode;
+  isPrimary: boolean;
+  verifiedAt?: string;
+  createdAt: string;
+}
+
+export interface DeployLog {
+  id: number;
+  projectName: string;
+  triggeredBy?: number;
+  triggerType: 'manual' | 'webhook' | 'schedule';
+  status: 'running' | 'success' | 'failed';
+  logOutput?: string;
+  startedAt: string;
+  finishedAt?: string;
+}
+
+export interface AuditLog {
+  id: number;
+  userId?: number;
+  clientId?: number;
+  action: string;
+  resourceType?: string;
+  resourceId?: string;
+  metadata: Record<string, any>;
+  ipAddress?: string;
+  createdAt: string;
+}
+
 export interface User {
   username: string;
   email: string;
   password: string;
-  role?: string;
+  role: UserRole;
+  clientId?: number;
   email_verified: boolean;
   verification_token?: string;
   verification_token_expires?: Date;

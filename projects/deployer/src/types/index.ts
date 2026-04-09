@@ -7,14 +7,65 @@ export interface ProjectResources {
 export interface Project {
   name: string;
   gitUrl: string;
+  gitBranch?: string;
   subdomain: string;
   env: Record<string, string>;
   port: number;
   gitToken?: string;
   resources?: ProjectResources;
+  clientId?: number;
+  domainId?: number;
   createdAt: string;
   status?: string;
   containerId?: string;
+}
+
+export type UserRole = 'superadmin' | 'admin' | 'client';
+
+export interface Client {
+  id: number;
+  name: string;
+  slug: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface ClientPermission {
+  id: number;
+  clientId: number;
+  canViewProjects: boolean;
+  canViewLogs: boolean;
+  canRestart: boolean;
+  canStartStop: boolean;
+  canUpdateEnv: boolean;
+  canTriggerDeploy: boolean;
+  canManageDomains: boolean;
+  canViewMetrics: boolean;
+  updatedAt: string;
+}
+
+export interface ClientDomain {
+  id: number;
+  clientId: number;
+  domain: string;
+  cfMode: 'managed' | 'unmanaged';
+  isPrimary: boolean;
+  verifiedAt?: string;
+  createdAt: string;
+}
+
+export interface DeployLog {
+  id: number;
+  projectName: string;
+  triggeredBy?: number;
+  triggerType: 'manual' | 'webhook' | 'schedule';
+  status: 'running' | 'success' | 'failed';
+  logOutput?: string;
+  startedAt: string;
+  finishedAt?: string;
 }
 
 export interface CustomDomain {

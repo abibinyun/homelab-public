@@ -6,6 +6,7 @@ import path from 'path';
 import { decryptToken } from '../utils/crypto.js';
 import { generateDockerfile } from '../utils/dockerfile.js';
 import { dockerService } from './docker.js';
+import domainService from './domain.service.js';
 import logger from '../utils/logger.js';
 
 const execFileAsync = promisify(execFile);
@@ -18,6 +19,7 @@ interface Project {
   gitToken?: string;
   subdomain: string;
   port: number;
+  domainId?: number;
   env?: Record<string, string>;
   resources?: {
     memoryLimit?: string;
@@ -80,7 +82,13 @@ export class DeployService {
     return imageName;
   }
 
-  async setupCloudflareRoute(subdomain: string, onProgress?: ProgressCallback): Promise<string> {
+  async setupCloudflareRoute(subdomain: string, onProgress?: ProgressCallback, domainId?: number): Promise<string> {
+    // Multi-domain mode: client has a specific domain assigned
+    if (domainId) {
+      return domainService.setupDnsForProject(subdomain, domainId, onProgress);
+    }
+
+    // Legacy mode: use global env vars + cloudflare-route.sh script
     onProgress?.('cloudflare', 'Configuring Cloudflare route...');
     const domain = `${subdomain}.${process.env.DOMAIN || 'yourdomain.com'}`;
 
@@ -177,7 +185,7 @@ export class DeployService {
     onProgress?.('stop', '✓ Old container removed');
     
     // Step 5: Setup Cloudflare
-    const domain = await this.setupCloudflareRoute(project.subdomain, onProgress);
+    const domain = await this.setupCloudflareRoute(project.subdomain, onProgress, project.domainId);
     
     // Step 6: Start new container
     await this.startNewContainer(project.name, imageName, project, domain, onProgress);

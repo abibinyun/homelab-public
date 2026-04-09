@@ -92,6 +92,95 @@ export async function runMigrations(): Promise<void> {
     await db.query(`CREATE INDEX IF NOT EXISTS idx_custom_domains_project ON custom_domains(project_name)`).catch(() => {});
     await db.query(`CREATE INDEX IF NOT EXISTS idx_custom_domains_domain ON custom_domains(domain)`).catch(() => {});
 
+    // ── Users: role + client_id ────────────────────────────────
+    await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'admin'`).catch(() => {});
+    await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS client_id INTEGER`).catch(() => {});
+
+    // ── Clients ────────────────────────────────────────────────
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS clients (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        slug VARCHAR(100) UNIQUE NOT NULL,
+        contact_email VARCHAR(255),
+        contact_phone VARCHAR(50),
+        notes TEXT,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // ── Client Permissions ─────────────────────────────────────
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS client_permissions (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL UNIQUE REFERENCES clients(id) ON DELETE CASCADE,
+        can_view_projects BOOLEAN DEFAULT true,
+        can_view_logs BOOLEAN DEFAULT false,
+        can_restart BOOLEAN DEFAULT false,
+        can_start_stop BOOLEAN DEFAULT false,
+        can_update_env BOOLEAN DEFAULT false,
+        can_trigger_deploy BOOLEAN DEFAULT false,
+        can_manage_domains BOOLEAN DEFAULT false,
+        can_view_metrics BOOLEAN DEFAULT false,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // ── Client Domains ─────────────────────────────────────────
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS client_domains (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        domain VARCHAR(255) NOT NULL,
+        cloudflare_zone_id VARCHAR(255),
+        cloudflare_api_token TEXT,
+        tunnel_id VARCHAR(255),
+        cf_mode VARCHAR(20) DEFAULT 'managed',
+        is_primary BOOLEAN DEFAULT false,
+        verified_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_client_domains_client ON client_domains(client_id)`).catch(() => {});
+
+    // ── Projects: extend with client_id + domain_id ────────────
+    await db.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS client_id INTEGER REFERENCES clients(id)`).catch(() => {});
+    await db.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_id INTEGER REFERENCES client_domains(id)`).catch(() => {});
+    await db.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS git_branch VARCHAR(100) DEFAULT 'main'`).catch(() => {});
+
+    // ── Deploy Logs ────────────────────────────────────────────
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS deploy_logs (
+        id SERIAL PRIMARY KEY,
+        project_name VARCHAR(50) NOT NULL,
+        triggered_by INTEGER,
+        trigger_type VARCHAR(20) DEFAULT 'manual',
+        status VARCHAR(20) DEFAULT 'running',
+        log_output TEXT,
+        started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        finished_at TIMESTAMP
+      )
+    `);
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_deploy_logs_project ON deploy_logs(project_name)`).catch(() => {});
+
+    // ── Audit Logs ─────────────────────────────────────────────
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        client_id INTEGER,
+        action VARCHAR(100) NOT NULL,
+        resource_type VARCHAR(50),
+        resource_id VARCHAR(100),
+        metadata JSONB DEFAULT '{}',
+        ip_address VARCHAR(45),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id)`).catch(() => {});
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at DESC)`).catch(() => {});
+
     logger.info('Database migrations completed successfully');
   } catch (error) {
     logger.error('Database migration failed', error);

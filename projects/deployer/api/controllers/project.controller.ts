@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import projectService from '../services/project.service.js';
 import { dockerService } from '../services/docker.js';
 import { deployService } from '../services/deploy.js';
+import domainService from '../services/domain.service.js';
 import { CreateProjectRequest, UpdateEnvRequest } from '../types/index.js';
 import { ResponseSerializer } from '../utils/response.js';
 import { paginate } from '../utils/pagination.js';
@@ -159,14 +160,20 @@ export class ProjectController {
 
     // Remove Cloudflare route
     try {
-      const { execFile } = await import('child_process');
-      const { promisify } = await import('util');
-      const execFileAsync = promisify(execFile);
-      const pathModule = await import('path');
-      const domain = `${project.subdomain}.${process.env.DOMAIN || 'yourdomain.com'}`;
-      const HOMELAB_PATH = process.env.HOMELAB_PATH || '/homelab';
-      const scriptPath = pathModule.join(HOMELAB_PATH, 'scripts', 'cloudflare-remove.sh');
-      await execFileAsync('sh', [scriptPath, domain]);
+      if ((project as any).domainId) {
+        // Multi-domain mode: remove via domain service
+        await domainService.removeDnsForProject(project.subdomain, (project as any).domainId);
+      } else {
+        // Legacy mode: use cloudflare-remove.sh script
+        const { execFile } = await import('child_process');
+        const { promisify } = await import('util');
+        const execFileAsync = promisify(execFile);
+        const pathModule = await import('path');
+        const domain = `${project.subdomain}.${process.env.DOMAIN || 'yourdomain.com'}`;
+        const HOMELAB_PATH = process.env.HOMELAB_PATH || '/homelab';
+        const scriptPath = pathModule.join(HOMELAB_PATH, 'scripts', 'cloudflare-remove.sh');
+        await execFileAsync('sh', [scriptPath, domain]);
+      }
     } catch (error) {
       logger.warn('Failed to remove Cloudflare route', { name });
     }
