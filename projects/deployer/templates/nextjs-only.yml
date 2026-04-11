@@ -1,0 +1,25 @@
+# Template: nextjs-only
+# Stack: Next.js (single service)
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=homelab-public_web"
+      - "traefik.http.routers.{{PROJECT_SLUG}}-web.rule=Host(`{{WEB_DOMAIN}}`)"
+      - "traefik.http.routers.{{PROJECT_SLUG}}-web.entrypoints=web"
+      - "traefik.http.services.{{PROJECT_SLUG}}-web.loadbalancer.server.port=3000"
+
+networks:
+  traefik:
+    external: true
+    name: homelab-public_web

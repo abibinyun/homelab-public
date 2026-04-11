@@ -49,6 +49,52 @@ export interface ClientPermission {
   updatedAt: string;
 }
 
+// ── v2 Types ──────────────────────────────────────────────────────────────────
+
+export type DeployType = 'IMAGE' | 'DOCKERFILE' | 'COMPOSE';
+export type DbMode = 'NONE' | 'SHARED' | 'DEDICATED';
+export type RedisMode = 'NONE' | 'SHARED' | 'DEDICATED';
+export type ProjectStatus = 'IDLE' | 'BUILDING' | 'RUNNING' | 'FAILED' | 'STOPPED';
+
+export interface Domain {
+  id: number;
+  name: string;
+  cfZoneId?: string;
+  cfTunnelId?: string;
+  cfApiToken?: string; // encrypted at rest, never returned to client
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Template {
+  id: number;
+  name: string;
+  description?: string;
+  composeContent: string;
+  variables: TemplateVariable[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TemplateVariable {
+  key: string;
+  description: string;
+  required: boolean;
+  default?: string;
+}
+
+export interface ProjectService {
+  id: number;
+  projectId: number;
+  name: string;
+  isPublic: boolean;
+  subdomain?: string;
+  port?: number;
+  createdAt: string;
+}
+
 export type CfMode = 'managed' | 'unmanaged';
 
 export interface ClientDomain {

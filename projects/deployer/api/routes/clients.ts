@@ -5,7 +5,7 @@ import { auditLog } from '../middleware/audit.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import clientController from '../controllers/client.controller.js';
 import permissionController from '../controllers/permission.controller.js';
-import domainController from '../controllers/domain.controller.js';
+import clientDomainController from '../controllers/clientDomain.controller.js';
 import deployLogController from '../controllers/deployLog.controller.js';
 
 const router = express.Router();
@@ -25,14 +25,13 @@ router.get('/:id/summary', requireRole('superadmin', 'admin'), asyncHandler(clie
 router.get('/:id/permissions', requireRole('superadmin', 'admin'), asyncHandler(permissionController.get.bind(permissionController)));
 router.put('/:id/permissions', requireRole('superadmin', 'admin'), auditLog('permission.update', 'client'), asyncHandler(permissionController.update.bind(permissionController)));
 
-// Domains
-router.get('/:id/domains', requireRole('superadmin', 'admin'), asyncHandler(domainController.list.bind(domainController)));
-router.post('/:id/domains', requireRole('superadmin', 'admin'), auditLog('domain.add', 'client'), asyncHandler(domainController.add.bind(domainController)));
-router.delete('/:id/domains/:domainId', requireRole('superadmin', 'admin'), auditLog('domain.remove', 'client'), asyncHandler(domainController.remove.bind(domainController)));
-router.post('/:id/domains/:domainId/verify', requireRole('superadmin', 'admin'), asyncHandler(domainController.verify.bind(domainController)));
+// Domains (legacy client_domains — will be migrated in Phase 3)
+router.get('/:id/domains', requireRole('superadmin', 'admin'), asyncHandler(clientDomainController.list.bind(clientDomainController)));
+router.post('/:id/domains', requireRole('superadmin', 'admin'), auditLog('domain.add', 'client'), asyncHandler(clientDomainController.add.bind(clientDomainController)));
+router.delete('/:id/domains/:domainId', requireRole('superadmin', 'admin'), auditLog('domain.remove', 'client'), asyncHandler(clientDomainController.remove.bind(clientDomainController)));
+router.post('/:id/domains/:domainId/verify', requireRole('superadmin', 'admin'), asyncHandler(clientDomainController.verify.bind(clientDomainController)));
 
 // Deploy logs per project (accessible from client routes too)
-router.get('/projects/:name/deploys', asyncHandler(deployLogController.listByProject.bind(deployLogController)));
 router.get('/deploys/:id/logs', asyncHandler(deployLogController.getById.bind(deployLogController)));
 
 export default router;

@@ -1,0 +1,27 @@
+# Template: node-express
+# Stack: Node.js / Express (generic)
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=homelab-public_web"
+      - "traefik.http.routers.{{PROJECT_SLUG}}-app.rule=Host(`{{WEB_DOMAIN}}`)"
+      - "traefik.http.routers.{{PROJECT_SLUG}}-app.entrypoints=web"
+      - "traefik.http.services.{{PROJECT_SLUG}}-app.loadbalancer.server.port=3000"
+
+networks:
+  traefik:
+    external: true
+    name: homelab-public_web

@@ -1,0 +1,62 @@
+# Template: nextjs-nestjs
+# Stack: Next.js 16 (web) + NestJS 11 (api) + PostgreSQL + Redis
+# Monorepo structure (Turborepo)
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - API_URL=${API_URL}
+      - REVALIDATE_SECRET=${REVALIDATE_SECRET}
+    networks:
+      - internal
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=homelab-public_web"
+      - "traefik.http.routers.{{PROJECT_SLUG}}-web.rule=Host(`{{WEB_DOMAIN}}`)"
+      - "traefik.http.routers.{{PROJECT_SLUG}}-web.entrypoints=web"
+      - "traefik.http.services.{{PROJECT_SLUG}}-web.loadbalancer.server.port=3000"
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - REVALIDATE_SECRET=${REVALIDATE_SECRET}
+      - NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+    volumes:
+      - uploads:/app/apps/api/uploads
+    networks:
+      - internal
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=homelab-public_web"
+      - "traefik.http.routers.{{PROJECT_SLUG}}-api.rule=Host(`{{API_DOMAIN}}`)"
+      - "traefik.http.routers.{{PROJECT_SLUG}}-api.entrypoints=web"
+      - "traefik.http.services.{{PROJECT_SLUG}}-api.loadbalancer.server.port=4000"
+    depends_on:
+      - web
+
+volumes:
+  uploads:
+
+networks:
+  internal:
+    driver: bridge
+  traefik:
+    external: true
+    name: homelab-public_web

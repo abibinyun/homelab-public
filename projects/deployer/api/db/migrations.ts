@@ -181,6 +181,77 @@ export async function runMigrations(): Promise<void> {
     await db.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id)`).catch(() => {});
     await db.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at DESC)`).catch(() => {});
 
+    // ── v2: Domains (global, replaces client_domains as primary routing entity) ──
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS domains (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) UNIQUE NOT NULL,
+        cf_zone_id VARCHAR(255),
+        cf_tunnel_id VARCHAR(255),
+        cf_api_token TEXT,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_domains_name ON domains(name)`).catch(() => {});
+
+    // ── v2: Templates ──────────────────────────────────────────
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS templates (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) UNIQUE NOT NULL,
+        description TEXT,
+        compose_content TEXT NOT NULL,
+        variables JSONB DEFAULT '[]',
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // ── v2: Projects — extend columns ──────────────────────────
+    await db.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS slug VARCHAR(100) UNIQUE`).catch(() => {});
+    await db.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS deploy_type VARCHAR(20) DEFAULT 'DOCKERFILE'`).catch(() => {});
+    await db.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES templates(id) ON DELETE SET NULL`).catch(() => {});
+    await db.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS registry_image TEXT`).catch(() => {});
+    await db.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_ref INTEGER REFERENCES domains(id) ON DELETE SET NULL`).catch(() => {});
+    await db.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS db_mode VARCHAR(20) DEFAULT 'NONE'`).catch(() => {});
+    await db.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS redis_mode VARCHAR(20) DEFAULT 'NONE'`).catch(() => {});
+    await db.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'IDLE'`).catch(() => {});
+    await db.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS last_deployed_at TIMESTAMP`).catch(() => {});
+    // Backfill slug from name for existing rows
+    await db.query(`UPDATE projects SET slug = name WHERE slug IS NULL`).catch(() => {});
+    // subdomain_type: 'subdomain' (default) or 'root' (deploy to root domain)
+    await db.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS subdomain_type VARCHAR(20) DEFAULT 'subdomain'`).catch(() => {});
+
+    // ── v2: Project Services (for COMPOSE type) ────────────────
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS project_services (
+        id SERIAL PRIMARY KEY,
+        project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        is_public BOOLEAN DEFAULT false,
+        subdomain VARCHAR(100),
+        port INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(project_id, name)
+      )
+    `);
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_project_services_project ON project_services(project_id)`).catch(() => {});
+
+    // ── v2: Deploy Logs — extend columns ───────────────────────
+    await db.query(`ALTER TABLE deploy_logs ADD COLUMN IF NOT EXISTS project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL`).catch(() => {});
+    await db.query(`ALTER TABLE deploy_logs ADD COLUMN IF NOT EXISTS image_tag_before TEXT`).catch(() => {});
+    // Backfill project_id from project_name for existing rows
+    await db.query(`
+      UPDATE deploy_logs dl
+      SET project_id = p.id
+      FROM projects p
+      WHERE dl.project_name = p.name AND dl.project_id IS NULL
+    `).catch(() => {});
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_deploy_logs_project_id ON deploy_logs(project_id)`).catch(() => {});
+
     logger.info('Database migrations completed successfully');
   } catch (error) {
     logger.error('Database migration failed', error);

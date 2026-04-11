@@ -69,10 +69,15 @@ Your domain must use Cloudflare as its nameserver:
 
 | Subdomain | Domain | Service |
 |-----------|--------|---------|
-| `deploy` | `yourdomain.com` | `http://traefik:80` |
+| (empty) | `yourdomain.com` | `http://traefik:80` |
+| `*` | `yourdomain.com` | `http://traefik:80` |
 | `traefik` | `yourdomain.com` | `http://traefik:80` |
 
-> All subdomains always use `http://traefik:80` — Traefik handles routing.
+> All hostnames always use `http://traefik:80` — Traefik handles routing.
+
+> ⚠️ **One tunnel for everything.** When adding a new domain later, add its hostnames to **this same tunnel** — do not create a new one. Two cloudflared containers using the same tunnel token will conflict.
+
+> ⚠️ **Wildcard (`*`) is important.** Without it, new project subdomains won't be reachable until you manually add each one to the tunnel.
 
 **3. Server**
 
@@ -141,7 +146,14 @@ sudo systemctl stop apache2   # or nginx, etc.
 - Ensure `DOMAIN` in `.env` is correct
 - Wait a few minutes for propagation
 
-**Cannot login:**
+**Cannot login (500 error):**
+- Check deployer logs: `docker compose logs deployer --tail=20`
+- Common cause: CORS error — ensure `DEPLOYER_DOMAIN` in `.env` matches the actual URL you use to access the deployer
+  - If deployer runs at `https://cube.my.id` → set `DEPLOYER_DOMAIN=cube.my.id`
+  - If deployer runs at `https://deploy.yourdomain.com` → leave `DEPLOYER_DOMAIN` empty (default)
+- After changing `.env`, rebuild and restart: `docker compose up -d --build deployer`
+
+**Cannot login (wrong password):**
 - `ADMIN_PASSWORD` is **required** in `.env` before the first `docker compose up` — if empty, the app will not start
 - If already running without it set: `rm -rf projects/deployer/data/ && docker compose restart deployer`
 - If you forgot your password: `./scripts/reset-password.sh`
@@ -150,6 +162,10 @@ sudo systemctl stop apache2   # or nginx, etc.
 ```bash
 docker compose logs deployer --tail=30
 ```
+If you see `password authentication failed for user "postgres"`:
+- Your `POSTGRES_PASSWORD` in `.env` does not match the password used when the database was first created
+- Fix: set `POSTGRES_PASSWORD` back to the original value, then restart
+
 If you see `column does not exist` or `relation does not exist`:
 ```bash
 # Reset deployer database (project data will be lost)

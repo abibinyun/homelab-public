@@ -6,6 +6,7 @@ import db from './db/index.js';
 import redis from './db/redis.js';
 import { runMigrations } from './db/migrations.js';
 import authService from './services/auth.service.js';
+import templateService from './services/template.service.js';
 import { requireAuth } from './middleware/auth.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { corsOptions } from './middleware/cors.js';
@@ -18,6 +19,8 @@ import settingsRoutes from './routes/settings.js';
 import clientsRoutes from './routes/clients.js';
 import auditRoutes from './routes/audit.js';
 import usersRoutes from './routes/users.js';
+import domainsRoutes from './routes/domains.js';
+import templatesRoutes from './routes/templates.js';
 import healthController from './controllers/health.controller.js';
 import { ResponseSerializer } from './utils/response.js';
 import config from './config/index.js';
@@ -80,6 +83,10 @@ try {
   logger.error('Failed to initialize auth service, server cannot start safely', { error: String(error) });
   process.exit(1);
 }
+
+// Seed built-in templates (idempotent)
+await templateService.seed().catch(err => logger.warn('Template seed failed', { error: String(err) }));
+
 logger.info('Server ready');
 
 // API routes
@@ -91,6 +98,22 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/clients', clientsRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/v2/domains', domainsRoutes);
+app.use('/api/v2/templates', templatesRoutes);
+
+app.post('/api/backup', requireAuth, async (_req, res, next) => {
+  try {
+    const { execFile } = await import('child_process');
+    const { promisify } = await import('util');
+    const execFileAsync = promisify(execFile);
+    const HOMELAB_PATH = process.env.HOMELAB_PATH || '/homelab';
+    const scriptPath = path.join(HOMELAB_PATH, 'scripts', 'backup-projects.sh');
+    const { stdout } = await execFileAsync('sh', [scriptPath]);
+    ResponseSerializer.success(res, { output: stdout }, { message: 'Backup completed' });
+  } catch (error: any) {
+    next(error);
+  }
+});
 
 app.get('/api/ssh-key', requireAuth, async (_req, res, next) => {
   try {

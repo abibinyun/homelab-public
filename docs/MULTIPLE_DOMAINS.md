@@ -27,21 +27,30 @@ Traefik routes based on the `Host` header of each request.
 
 ### 2. Add to Cloudflare Tunnel
 
-In Cloudflare Dashboard → Networks → Tunnels → homelab → Public Hostname:
+> ⚠️ **Do NOT create a new tunnel for a new domain.** Always add new domains to the existing running tunnel. Creating a new tunnel means you need a new cloudflared container — this causes conflicts if two containers use the same tunnel token.
+
+In Cloudflare Dashboard → Networks → Tunnels → **homelab** (your existing tunnel) → Public Hostname:
 
 **For root domain:**
 - Hostname: `myapp.com` (leave subdomain empty)
 - Service: `http://traefik:80`
 
-**For subdomain:**
-- Subdomain: `www`
-- Domain: `myapp.com`
-- Service: `http://traefik:80`
-
-**For wildcard (optional):**
+**For wildcard subdomain (recommended):**
 - Subdomain: `*`
 - Domain: `myapp.com`
 - Service: `http://traefik:80`
+
+> Adding `*` means all subdomains of `myapp.com` automatically route through Traefik — no need to touch the tunnel config for every new project.
+
+### 3. Update DNS Records
+
+Ensure the DNS records for the new domain point to the **same tunnel** (`f15a0196...cfargotunnel.com` or whatever your tunnel ID is), not a different one.
+
+Check in Cloudflare Dashboard → DNS:
+- `myapp.com` → CNAME → `<tunnel-id>.cfargotunnel.com` (proxied)
+- `*.myapp.com` → CNAME → `<tunnel-id>.cfargotunnel.com` (proxied)
+
+> ⚠️ If DNS points to a different tunnel ID than the one running in your cloudflared container, the domain will be down even though everything else looks correct.
 
 ### 3. Update docker-compose.yml
 
@@ -291,3 +300,55 @@ docker compose logs traefik | grep myapp
 4. Update labels in docker-compose.yml
 5. Deploy: `docker compose up -d`
 6. Done! New domain is live immediately
+
+---
+
+## Deploying an External Project (e.g. digitor.id)
+
+For projects that live outside the homelab-public folder but want to use the same Traefik + Cloudflare Tunnel:
+
+### Requirements
+
+The project's `docker-compose` must:
+1. Join the `homelab-public_web` network (external)
+2. Use Traefik labels for routing
+3. NOT include its own postgres/redis if using the shared ones from homelab-public
+
+```yaml
+services:
+  myapp:
+    build: .
+    container_name: myapp
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.myapp.rule=Host(`myapp.cube.my.id`)"
+      - "traefik.http.routers.myapp.entrypoints=web"
+      - "traefik.http.services.myapp.loadbalancer.server.port=3000"
+
+networks:
+  web:
+    external: true
+    name: homelab-public_web
+```
+
+### Shared Database
+
+To use homelab-public's postgres/redis, set the connection string to the container name:
+
+```env
+DATABASE_URL=postgresql://postgres:POSTGRES_PASSWORD@postgres:5432/mydb?schema=public
+REDIS_URL=redis://:REDIS_PASSWORD@redis:6379
+```
+
+> `POSTGRES_PASSWORD` and `REDIS_PASSWORD` must match the values in `homelab-public/.env`.
+
+### Deploy
+
+```bash
+cd /path/to/myproject
+docker compose -f docker-compose.homelab-public.yml --env-file .env.homelab-public up -d --build
+```
+
+No changes needed to homelab-public itself — Traefik auto-discovers the new containers via Docker labels.

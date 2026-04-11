@@ -108,11 +108,15 @@ In the tunnel page → **Public Hostname**, add:
 
 | Subdomain | Domain | Service |
 |-----------|--------|---------|
-| `whoami` | `yourdomain.com` | `http://traefik:80` |
+| (empty) | `yourdomain.com` | `http://traefik:80` |
+| `*` | `yourdomain.com` | `http://traefik:80` |
 | `traefik` | `yourdomain.com` | `http://traefik:80` |
-| `deploy` | `yourdomain.com` | `http://traefik:80` |
 
 > All services always use `http://traefik:80` — Traefik handles routing based on subdomain.
+
+> ⚠️ **Adding a new domain later?** Do NOT create a new tunnel. Just add the new domain's hostnames to this same tunnel. One tunnel handles all domains.
+
+> ⚠️ **Wildcard subdomain** (`*`) is recommended so every new project subdomain works automatically without touching the tunnel config.
 
 ### 4. Configure `.env`
 
@@ -126,16 +130,31 @@ Edit `.env`:
 # Primary domain (without subdomain)
 DOMAIN=yourdomain.com
 
+# Deployer domain — IMPORTANT
+# Default: deploy.${DOMAIN} → deployer runs at https://deploy.yourdomain.com
+# Set this if you want deployer at the root domain or a different subdomain:
+#   DEPLOYER_DOMAIN=yourdomain.com        → https://yourdomain.com
+#   DEPLOYER_DOMAIN=panel.yourdomain.com  → https://panel.yourdomain.com
+# ⚠️ This MUST match the URL you use to open the deployer in the browser.
+#    If it doesn't match, login will fail with a 500 CORS error.
+DEPLOYER_DOMAIN=
+
 # Cloudflare Tunnel Token (from step 2)
+# ⚠️ Use the token from the tunnel that is actually running (the one in docker-compose).
+#    Do NOT create a new tunnel just for a new domain — add the new domain to the
+#    existing tunnel's Public Hostnames instead.
 TUNNEL_TOKEN=eyJh...
 
 # Traefik Dashboard Auth
 # Generate: docker run --rm httpd:alpine htpasswd -nb admin yourpassword
-TRAEFIK_AUTH=admin:$apr1$...
+# Replace every $ with $$ in the value
+TRAEFIK_AUTH=admin:$$apr1$$...
 
-# Database
+# Database — change before production!
 POSTGRES_PASSWORD=strong-password-here
 REDIS_PASSWORD=strong-password-here
+# ⚠️ POSTGRES_PASSWORD cannot be changed after the first run without resetting the database.
+#    Write it down somewhere safe.
 ```
 
 ### 5. Configure Deployer
@@ -316,7 +335,7 @@ See [docs/SECURITY.md](docs/SECURITY.md) for the full guide.
 - [docs/ADVANCED.md](docs/ADVANCED.md) — Database, monitoring, CI/CD, backup
 - [docs/SECURITY.md](docs/SECURITY.md) — Security hardening
 - [docs/CLOUDFLARE_API.md](docs/CLOUDFLARE_API.md) — Cloudflare API automation
-- [docs/MULTIPLE_DOMAINS.md](docs/MULTIPLE_DOMAINS.md) — Multiple domain setup
+- [docs/MULTIPLE_DOMAINS.md](docs/MULTIPLE_DOMAINS.md) — Multiple domain setup + deploying external projects
 - [docs/CUSTOM_DOMAIN.md](docs/CUSTOM_DOMAIN.md) — Custom domain per project
 
 ---

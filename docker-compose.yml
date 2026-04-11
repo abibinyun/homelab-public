@@ -164,12 +164,13 @@ services:
       - CLOUDFLARE_TUNNEL_ID=${CLOUDFLARE_TUNNEL_ID:-}
       - CLOUDFLARE_ZONE_ID=${CLOUDFLARE_ZONE_ID:-}
       - DOMAIN=${DOMAIN:-}
+      - DEPLOYER_DOMAIN=${DEPLOYER_DOMAIN:-}
       - DOCKER_NETWORK=homelab-public_web
     networks:
       - web
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.deployer.rule=Host(`deploy.${DOMAIN}`)"
+      - "traefik.http.routers.deployer.rule=Host(`${DEPLOYER_DOMAIN:-deploy.${DOMAIN}}`)"
       - "traefik.http.routers.deployer.entrypoints=web"
       - "traefik.http.services.deployer.loadbalancer.server.port=3000"
 
