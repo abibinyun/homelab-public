@@ -32,26 +32,25 @@ class StorageRepository {
   }
 
   // Projects - use PostgreSQL if available, fallback to JSON
-  async getProjects(userId?: number): Promise<Project[]> {
+  async getProjects(userId?: number, clientId?: number): Promise<Project[]> {
     if (db.isConnected()) {
-      return postgresRepository.getProjects(userId);
+      return postgresRepository.getProjects(userId, clientId);
     }
     const projects = await this.readJsonFile<Project[]>(PROJECTS_FILE, []);
+    if (clientId) return projects.filter(p => (p as any).clientId === clientId);
     return userId ? projects.filter(p => p.userId === userId) : projects;
   }
 
   async saveProjects(projects: Project[]): Promise<void> {
-    if (db.isConnected()) {
-      return;
-    }
+    if (db.isConnected()) return;
     await this.writeJsonFile(PROJECTS_FILE, projects);
   }
 
-  async getProjectByName(name: string, userId?: number): Promise<Project | null> {
+  async getProjectByName(name: string, userId?: number, clientId?: number): Promise<Project | null> {
     if (db.isConnected()) {
-      return postgresRepository.getProjectByName(name, userId);
+      return postgresRepository.getProjectByName(name, userId, clientId);
     }
-    const projects = await this.getProjects(userId);
+    const projects = await this.getProjects(userId, clientId);
     return projects.find(p => p.name === name) || null;
   }
 
@@ -76,14 +75,16 @@ class StorageRepository {
     }
   }
 
-  async deleteProject(name: string, userId?: number): Promise<void> {
+  async deleteProject(name: string, userId?: number, clientId?: number): Promise<void> {
     if (db.isConnected()) {
-      return postgresRepository.deleteProject(name, userId);
+      return postgresRepository.deleteProject(name, userId, clientId);
     }
     const projects = await this.getProjects();
-    const filtered = userId 
-      ? projects.filter(p => !(p.name === name && p.userId === userId))
-      : projects.filter(p => p.name !== name);
+    const filtered = clientId
+      ? projects.filter(p => !(p.name === name && (p as any).clientId === clientId))
+      : userId
+        ? projects.filter(p => !(p.name === name && p.userId === userId))
+        : projects.filter(p => p.name !== name);
     await this.saveProjects(filtered);
   }
 

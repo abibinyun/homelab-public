@@ -1,13 +1,10 @@
 import { Request, Response } from 'express';
 import crypto from 'crypto';
 import projectService from '../services/project.service.js';
+import { deployService } from '../services/deploy.js';
 import { UnauthorizedError } from '../types/index.js';
 import { ResponseSerializer } from '../utils/response.js';
 import logger from '../utils/logger.js';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
 
 export class WebhookController {
   async github(req: Request, res: Response): Promise<void> {
@@ -73,11 +70,42 @@ export class WebhookController {
   }
 
   private triggerDeploy(projectName: string): void {
-    const port = process.env.PORT || 3000;
-    const internalToken = process.env.INTERNAL_WEBHOOK_TOKEN || 'webhook';
-    execAsync(`curl -X POST http://localhost:${port}/api/projects/${projectName}/deploy -H "Authorization: Bearer ${internalToken}" > /dev/null 2>&1 &`)
-      .then(() => logger.info('Deploy triggered', { project: projectName }))
-      .catch((error) => logger.error('Deploy trigger failed', error));
+    projectService.getProjectByName(projectName)
+      .then(async (project) => {
+        const p = project as any;
+        const config = p.deployType && p.deployType !== 'DOCKERFILE'
+          ? {
+              name: project.name,
+              slug: p.slug || project.name,
+              subdomain: project.subdomain,
+              domainId: p.domainRef || p.domainId,
+              deployType: p.deployType,
+              gitUrl: project.gitUrl,
+              gitToken: project.gitToken,
+              gitBranch: p.gitBranch || 'main',
+              registryImage: p.registryImage,
+              templateId: p.templateId,
+              composeVars: p.composeVars || {},
+              env: project.env || {},
+              port: project.port,
+              dbMode: p.dbMode || 'NONE',
+              redisMode: p.redisMode || 'NONE',
+              resources: project.resources,
+            }
+          : null;
+
+        if (config) {
+          await deployService.deploy(config);
+        } else {
+          await deployService.deployLegacy(project);
+        }
+        await projectService.updateProjectStatus(projectName, 'RUNNING');
+        logger.info('Webhook deploy completed', { project: projectName });
+      })
+      .catch((error) => {
+        projectService.updateProjectStatus(projectName, 'FAILED').catch(() => {});
+        logger.error('Webhook deploy failed', { project: projectName, error: error.message });
+      });
   }
 }
 

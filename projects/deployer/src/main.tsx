@@ -9,6 +9,7 @@ import ClientDetail from "./pages/admin/ClientDetail";
 import AdminProjects from "./pages/admin/Projects";
 import AuditLog from "./pages/admin/AuditLog";
 import Users from "./pages/admin/Users";
+import Domains from "./pages/admin/Domains";
 import ClientDashboard from "./pages/client/Dashboard";
 import ClientProjectDetail from "./pages/client/ProjectDetail";
 import ClientLogs from "./pages/client/Logs";
@@ -47,6 +48,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <Route path="/admin/projects" element={<RoleRoute roles={["superadmin", "admin"]}><AdminProjects /></RoleRoute>} />
         <Route path="/admin/audit" element={<RoleRoute roles={["superadmin", "admin"]}><AuditLog /></RoleRoute>} />
         <Route path="/admin/users" element={<RoleRoute roles={["superadmin"]}><Users /></RoleRoute>} />
+        <Route path="/admin/domains" element={<RoleRoute roles={["superadmin", "admin"]}><Domains /></RoleRoute>} />
 
         {/* Client portal routes */}
         <Route path="/client" element={<RoleRoute roles={["client"]}><ClientDashboard /></RoleRoute>} />

@@ -197,3 +197,90 @@ export async function deleteCustomDomain(domainId: number): Promise<any> {
   const res = await apiCall(`/api/domains/${domainId}`, { method: 'DELETE' });
   return handleResponse(res);
 }
+
+// ── v2 API ────────────────────────────────────────────────────────────────────
+
+export async function getDomains(): Promise<any[]> {
+  const res = await apiCall('/api/v2/domains');
+  const j = await res.json();
+  return j.data || [];
+}
+
+export async function createDomain(data: { name: string; cfZoneId?: string; cfTunnelId?: string; cfApiToken?: string }): Promise<any> {
+  const res = await apiCall('/api/v2/domains', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+export async function updateDomain(id: number, data: any): Promise<any> {
+  const res = await apiCall(`/api/v2/domains/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+export async function deleteDomain(id: number): Promise<void> {
+  const res = await apiCall(`/api/v2/domains/${id}`, { method: 'DELETE' });
+  return handleResponse(res);
+}
+
+export async function getTemplates(): Promise<any[]> {
+  const res = await apiCall('/api/v2/templates');
+  const j = await res.json();
+  return j.data || [];
+}
+
+export async function getDomainsForClient(clientId: number): Promise<any[]> {
+  // Get domains assigned to a specific client via client_domains
+  const res = await apiCall(`/api/clients/${clientId}/domains`);
+  const j = await res.json();
+  return j.data || [];
+}
+
+export async function assignDomainToClient(domainId: number, clientId: number): Promise<void> {
+  const res = await apiCall(`/api/v2/domains/${domainId}/assign/${clientId}`, { method: 'POST' });
+  return handleResponse(res);
+}
+
+export async function unassignDomainFromClient(domainId: number, clientId: number): Promise<void> {
+  const res = await apiCall(`/api/v2/domains/${domainId}/assign/${clientId}`, { method: 'DELETE' });
+  return handleResponse(res);
+}
+
+export async function getProjectServices(name: string): Promise<any[]> {
+  const res = await apiCall(`/api/projects/${name}/services`);
+  const j = await res.json();
+  return j.data || [];
+}
+
+export async function getComposeLogs(name: string, tail = 100): Promise<{ logs: string }> {
+  const res = await apiCall(`/api/projects/${name}/compose-logs?tail=${tail}`);
+  return handleResponse(res);
+}
+
+export async function getDeployHistory(name: string, limit = 20): Promise<any[]> {
+  const res = await apiCall(`/api/projects/${name}/history?limit=${limit}`);
+  const j = await res.json();
+  return j.data || [];
+}
+
+export async function triggerRollback(name: string): Promise<void> {
+  const res = await apiCall(`/api/projects/${name}/rollback`, { method: 'POST' });
+  return handleResponse(res);
+}
+
+export async function getProjectStats(name: string): Promise<any> {
+  const res = await apiCall(`/api/projects/${name}/stats`);
+  const j = await res.json();
+  return j.data;
+}
+
+export async function triggerBackup(): Promise<{ output: string }> {
+  const res = await apiCall('/api/backup', { method: 'POST' });
+  return handleResponse(res);
+}

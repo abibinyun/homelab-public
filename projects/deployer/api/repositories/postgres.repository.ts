@@ -2,38 +2,64 @@ import db from '../db/index.js';
 import { Project, User } from '../types/index.js';
 
 class PostgresRepository {
-  // Projects
-  async getProjects(userId?: number): Promise<Project[]> {
-    const base = 'SELECT name, git_url as "gitUrl", git_branch as "gitBranch", subdomain, env, port, user_id as "userId", client_id as "clientId", domain_id as "domainId", git_token as "gitToken", webhook_secret as "webhookSecret", resources, created_at as "createdAt", updated_at as "updatedAt" FROM projects';
-    const query = userId ? `${base} WHERE user_id = $1 ORDER BY created_at DESC` : `${base} ORDER BY created_at DESC`;
+  // ── Projects ──────────────────────────────────────────────────────────────────
+
+  private projectSelect = `
+    SELECT name, git_url as "gitUrl", git_branch as "gitBranch", subdomain,
+           subdomain_type as "subdomainType", env, port,
+           user_id as "userId", client_id as "clientId", domain_id as "domainId",
+           domain_ref as "domainRef", git_token as "gitToken", webhook_secret as "webhookSecret",
+           resources, slug,
+           deploy_type as "deployType", template_id as "templateId",
+           registry_image as "registryImage", db_mode as "dbMode", redis_mode as "redisMode",
+           status, last_deployed_at as "lastDeployedAt",
+           created_at as "createdAt", updated_at as "updatedAt"
+    FROM projects
+  `;
+
+  async getProjects(userId?: number, clientId?: number): Promise<Project[]> {
+    if (clientId) {
+      // Client: only see projects assigned to their client_id
+      const r = await db.query(`${this.projectSelect} WHERE client_id = $1 ORDER BY created_at DESC`, [clientId]);
+      return r.rows;
+    }
+    const query = userId
+      ? `${this.projectSelect} WHERE user_id = $1 ORDER BY created_at DESC`
+      : `${this.projectSelect} ORDER BY created_at DESC`;
     const result = await db.query(query, userId ? [userId] : []);
     return result.rows;
   }
 
-  async getProjectByName(name: string, userId?: number): Promise<Project | null> {
-    const base = 'SELECT name, git_url as "gitUrl", git_branch as "gitBranch", subdomain, env, port, user_id as "userId", client_id as "clientId", domain_id as "domainId", git_token as "gitToken", webhook_secret as "webhookSecret", resources, created_at as "createdAt", updated_at as "updatedAt" FROM projects';
-    const query = userId ? `${base} WHERE name = $1 AND user_id = $2` : `${base} WHERE name = $1`;
+  async getProjectByName(name: string, userId?: number, clientId?: number): Promise<Project | null> {
+    if (clientId) {
+      const r = await db.query(`${this.projectSelect} WHERE name = $1 AND client_id = $2`, [name, clientId]);
+      return r.rows[0] || null;
+    }
+    const query = userId
+      ? `${this.projectSelect} WHERE name = $1 AND user_id = $2`
+      : `${this.projectSelect} WHERE name = $1`;
     const result = await db.query(query, userId ? [name, userId] : [name]);
     return result.rows[0] || null;
   }
 
   async createProject(project: Project): Promise<void> {
+    const p = project as any;
     await db.query(`
-      INSERT INTO projects (name, git_url, git_branch, subdomain, env, port, user_id, client_id, domain_id, git_token, webhook_secret, resources, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      INSERT INTO projects (
+        name, git_url, git_branch, subdomain, subdomain_type, env, port,
+        user_id, client_id, domain_id, domain_ref, git_token, webhook_secret, resources,
+        slug, deploy_type, template_id, registry_image, db_mode, redis_mode, status,
+        created_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
     `, [
-      project.name,
-      project.gitUrl,
-      (project as any).gitBranch || 'main',
-      project.subdomain,
-      JSON.stringify(project.env),
-      project.port,
-      project.userId || null,
-      (project as any).clientId || null,
-      (project as any).domainId || null,
-      project.gitToken || null,
-      project.webhookSecret || null,
-      JSON.stringify(project.resources || {}),
+      project.name, project.gitUrl, p.gitBranch || 'main', project.subdomain,
+      p.subdomainType || 'subdomain',
+      JSON.stringify(project.env), project.port,
+      project.userId || null, p.clientId || null, p.domainId || null, p.domainRef || null,
+      project.gitToken || null, project.webhookSecret || null, JSON.stringify(project.resources || {}),
+      p.slug || project.name,
+      p.deployType || 'DOCKERFILE', p.templateId || null, p.registryImage || null,
+      p.dbMode || 'NONE', p.redisMode || 'NONE', p.status || 'IDLE',
       project.createdAt,
     ]);
   }
@@ -74,13 +100,13 @@ class PostgresRepository {
     `, values);
   }
 
-  async deleteProject(name: string, userId?: number): Promise<void> {
-    const query = userId
-      ? 'DELETE FROM projects WHERE name = $1 AND user_id = $2'
-      : 'DELETE FROM projects WHERE name = $1';
-    
-    const params = userId ? [name, userId] : [name];
-    await db.query(query, params);
+  async deleteProject(name: string, userId?: number, clientId?: number): Promise<void> {
+    if (clientId) {
+      await db.query('DELETE FROM projects WHERE name = $1 AND client_id = $2', [name, clientId]);
+      return;
+    }
+    const query = userId ? 'DELETE FROM projects WHERE name = $1 AND user_id = $2' : 'DELETE FROM projects WHERE name = $1';
+    await db.query(query, userId ? [name, userId] : [name]);
   }
 
   // Users

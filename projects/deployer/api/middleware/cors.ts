@@ -8,6 +8,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   'http://localhost:3004',
   'http://localhost:3005',
   `https://deploy.${process.env.DOMAIN || 'yourdomain.com'}`,
+  ...(process.env.DEPLOYER_DOMAIN ? [`https://${process.env.DEPLOYER_DOMAIN}`] : []),
 ];
 
 export const corsOptions = cors({

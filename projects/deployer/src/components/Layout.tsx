@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard, LogOut, Menu, X, Users, FolderOpen, ScrollText, UserCog } from 'lucide-react';
+import { LayoutDashboard, LogOut, Menu, Users, FolderOpen, ScrollText, UserCog, Globe } from 'lucide-react';
 import { Button } from './ui/button';
 import { useRole } from '../hooks/useRole';
 
@@ -69,6 +69,14 @@ export default function Layout({ children }: { children: ReactNode }) {
                 Users
               </Button>
             )}
+            <Button
+              variant={currentPath === '/admin/domains' ? 'secondary' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => { navigate('/admin/domains'); setMobileOpen(false); }}
+            >
+              <Globe className="h-5 w-5 mr-3" />
+              Domains
+            </Button>
           </>
         ) : (
           <>
